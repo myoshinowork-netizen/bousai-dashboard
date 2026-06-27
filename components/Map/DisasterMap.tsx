@@ -108,8 +108,11 @@ function typhoonToGeoJSON(typhoons: TyphoonInfo[], selectedTime: number | null):
     if (selectedTime !== null && allPoints.length >= 2) {
       const target = selectedTime;
       // selectedTime より前の最後のポイントと後の最初のポイントを探す
-      const beforeIdx = allPoints.findLastIndex((p) => new Date(p.time).getTime() <= target);
-      const afterIdx  = allPoints.findIndex((p) => new Date(p.time).getTime() >= target);
+      let beforeIdx = -1;
+      for (let i = allPoints.length - 1; i >= 0; i--) {
+        if (new Date(allPoints[i].time).getTime() <= target) { beforeIdx = i; break; }
+      }
+      const afterIdx = allPoints.findIndex((p) => new Date(p.time).getTime() >= target);
 
       if (beforeIdx === -1) {
         // selectedTime が全履歴より前 → 台風はまだ存在しない
