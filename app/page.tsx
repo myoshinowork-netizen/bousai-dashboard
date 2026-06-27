@@ -223,7 +223,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ background: 'var(--cp-bg)' }} className="flex flex-col h-screen">
+    <div style={{ background: 'var(--cp-bg)', height: '100dvh' }} className="flex flex-col">
       <AlertBanner />
       <EewModal />
 

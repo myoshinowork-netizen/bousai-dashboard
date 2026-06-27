@@ -63,7 +63,23 @@ const TC_CLASS_COLOR: Record<TyphoonClassType, string> = {
 };
 
 // 台風トラック → GeoJSON
-function typhoonToGeoJSON(typhoons: TyphoonInfo[]): {
+// 2点間の線形補間（時刻ベース）
+function interpolatePos(
+  p1: { lat: number; lng: number; time: string },
+  p2: { lat: number; lng: number; time: string },
+  targetMs: number,
+): { lat: number; lng: number } {
+  const t1 = new Date(p1.time).getTime();
+  const t2 = new Date(p2.time).getTime();
+  if (t2 === t1) return { lat: p1.lat, lng: p1.lng };
+  const ratio = Math.max(0, Math.min(1, (targetMs - t1) / (t2 - t1)));
+  return {
+    lat: p1.lat + (p2.lat - p1.lat) * ratio,
+    lng: p1.lng + (p2.lng - p1.lng) * ratio,
+  };
+}
+
+function typhoonToGeoJSON(typhoons: TyphoonInfo[], selectedTime: number | null): {
   positions: GeoJSON.FeatureCollection;
   tracks: GeoJSON.FeatureCollection;
   windCircles: GeoJSON.FeatureCollection;
@@ -77,10 +93,48 @@ function typhoonToGeoJSON(typhoons: TyphoonInfo[]): {
   const historyDots: GeoJSON.Feature[]  = [];
 
   for (const tc of typhoons) {
-    // 現在位置
+    // ── selectedTime に基づいて表示位置・トラックを決定 ──
+    let dispLat = tc.lat;
+    let dispLng = tc.lng;
+    let dispWindKt = tc.maxWindKt;
+
+    // 全時刻ポイントをマージ（過去→現在→予報の順）
+    const allPoints: Array<{ lat: number; lng: number; time: string; forecast: boolean }> = [
+      ...(tc.history ?? []).map((h) => ({ lat: h.lat, lng: h.lng, time: h.time, forecast: false })),
+      { lat: tc.lat, lng: tc.lng, time: new Date().toISOString(), forecast: false },
+      ...(tc.track ?? []).map((t) => ({ lat: t.lat, lng: t.lng, time: t.time, forecast: true })),
+    ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+    if (selectedTime !== null && allPoints.length >= 2) {
+      const target = selectedTime;
+      // selectedTime より前の最後のポイントと後の最初のポイントを探す
+      const beforeIdx = allPoints.findLastIndex((p) => new Date(p.time).getTime() <= target);
+      const afterIdx  = allPoints.findIndex((p) => new Date(p.time).getTime() >= target);
+
+      if (beforeIdx === -1) {
+        // selectedTime が全履歴より前 → 台風はまだ存在しない
+        continue;
+      } else if (afterIdx === -1) {
+        // selectedTime が全予報より後 → 最後の位置に固定
+        const last = allPoints[allPoints.length - 1];
+        dispLat = last.lat;
+        dispLng = last.lng;
+      } else if (beforeIdx === afterIdx) {
+        // ちょうど一致
+        dispLat = allPoints[beforeIdx].lat;
+        dispLng = allPoints[beforeIdx].lng;
+      } else {
+        // 補間
+        const pos = interpolatePos(allPoints[beforeIdx], allPoints[afterIdx], target);
+        dispLat = pos.lat;
+        dispLng = pos.lng;
+      }
+    }
+
+    // 現在位置（または補間位置）
     positions.push({
       type: 'Feature',
-      geometry: { type: 'Point', coordinates: [tc.lng, tc.lat] },
+      geometry: { type: 'Point', coordinates: [dispLng, dispLat] },
       properties: {
         name:     tc.name,
         pressure: tc.pressureHPa,
@@ -88,31 +142,38 @@ function typhoonToGeoJSON(typhoons: TyphoonInfo[]): {
       },
     });
 
-    // 予報トラック（破線）
-    const forecastCoords: [number, number][] = [
-      [tc.lng, tc.lat],
-      ...tc.track.map((p) => [p.lng, p.lat] as [number, number]),
-    ];
-    if (forecastCoords.length > 1) {
-      tracks.push({
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: forecastCoords },
-        properties: { name: tc.name },
-      });
+    // 予報トラック（破線）: ライブ or 未来選択時のみ
+    if (selectedTime === null || selectedTime >= Date.now()) {
+      const forecastCoords: [number, number][] = [
+        [dispLng, dispLat],
+        ...(tc.track ?? [])
+          .filter((p) => selectedTime === null || new Date(p.time).getTime() >= selectedTime)
+          .map((p) => [p.lng, p.lat] as [number, number]),
+      ];
+      if (forecastCoords.length > 1) {
+        tracks.push({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: forecastCoords },
+          properties: { name: tc.name },
+        });
+      }
     }
 
     // 暴風域（最大風速から概算）
-    if (tc.maxWindKt > 34) {
-      const windRadiusKm = Math.min(tc.maxWindKt * 1.5, 300);
-      windCircles.push(geoCircle([tc.lng, tc.lat], windRadiusKm, 64));
+    if (dispWindKt > 34) {
+      const windRadiusKm = Math.min(dispWindKt * 1.5, 300);
+      windCircles.push(geoCircle([dispLng, dispLat], windRadiusKm, 64));
     }
 
     // ── 過去トラック履歴 ──
-    if (tc.history && tc.history.length > 0) {
-      // 実線（カテゴリ別色は点で表現、線は一色）
-      const histCoords: [number, number][] = tc.history.map((p) => [p.lng, p.lat]);
-      // 現在位置を末端に追加
-      histCoords.push([tc.lng, tc.lat]);
+    // selectedTime がある場合はその時刻までの履歴のみ表示
+    const histFiltered = (tc.history ?? []).filter(
+      (p) => selectedTime === null || new Date(p.time).getTime() <= selectedTime
+    );
+
+    if (histFiltered.length > 0) {
+      const histCoords: [number, number][] = histFiltered.map((p) => [p.lng, p.lat]);
+      histCoords.push([dispLng, dispLat]);
       if (histCoords.length > 1) {
         historyLines.push({
           type: 'Feature',
@@ -121,10 +182,8 @@ function typhoonToGeoJSON(typhoons: TyphoonInfo[]): {
         });
       }
 
-      // カテゴリ別色ドット（6時間ごと）
-      for (const pt of tc.history) {
+      for (const pt of histFiltered) {
         const color = TC_CLASS_COLOR[pt.classType];
-        // カテゴリ変化ラベル
         const labelText = pt.classType === 'ET'  ? '温低' :
                           pt.classType === 'TD'  ? '熱低' :
                           pt.classType === 'STS' ? '強熱' :
@@ -298,6 +357,7 @@ export function DisasterMap() {
   const waveRafRef        = useRef<number | null>(null);
   const locationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const geoWatchRef       = useRef<number | null>(null);
+  const shouldFlyRef      = useRef(false); // ボタン押下時のみtrue→flyTo後false
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
   const [showDeniedTooltip, setShowDeniedTooltip] = useState(false);
   const [deniedFading, setDeniedFading] = useState(false);
@@ -350,10 +410,11 @@ export function DisasterMap() {
     map.once('style.load', () => {
       initAllLayers(map);
 
-      // 台風データを地図ソースに反映するヘルパー
+      // 台風データを地図ソースに反映するヘルパー（selectedTimeはstoreから毎回取得）
       function applyTyphoons(tcs: TyphoonInfo[]) {
         if (!map.getSource('typhoon-pos')) return;
-        const { positions, tracks, windCircles, historyLines, historyDots } = typhoonToGeoJSON(tcs);
+        const selTime = useDisasterStore.getState().selectedTime;
+        const { positions, tracks, windCircles, historyLines, historyDots } = typhoonToGeoJSON(tcs, selTime);
         (map.getSource('typhoon-pos')          as maplibregl.GeoJSONSource).setData(positions);
         (map.getSource('typhoon-track')        as maplibregl.GeoJSONSource).setData(tracks);
         (map.getSource('typhoon-wind')         as maplibregl.GeoJSONSource).setData(windCircles);
@@ -364,11 +425,13 @@ export function DisasterMap() {
       // 現在の台風データを即時反映
       applyTyphoons(useDisasterStore.getState().typhoons);
 
-      // Zustand store を直接 subscribe して台風データ変化を追跡
-      let prevTyphoons = useDisasterStore.getState().typhoons;
+      // Zustand store を直接 subscribe して台風データ・selectedTime 変化を追跡
+      let prevTyphoons    = useDisasterStore.getState().typhoons;
+      let prevSelectedTime = useDisasterStore.getState().selectedTime;
       unsubTyphoon = useDisasterStore.subscribe((state) => {
-        if (state.typhoons !== prevTyphoons) {
-          prevTyphoons = state.typhoons;
+        if (state.typhoons !== prevTyphoons || state.selectedTime !== prevSelectedTime) {
+          prevTyphoons    = state.typhoons;
+          prevSelectedTime = state.selectedTime;
           applyTyphoons(state.typhoons);
         }
       });
@@ -449,13 +512,13 @@ export function DisasterMap() {
     if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
   }, [thunderTileTime]);
 
-  // 台風 GeoJSON 更新
+  // 台風 GeoJSON 更新（typhoons または selectedTime が変わったとき）
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const apply = () => {
       if (!map.getSource('typhoon-pos')) return;
-      const { positions, tracks, windCircles, historyLines, historyDots } = typhoonToGeoJSON(typhoons);
+      const { positions, tracks, windCircles, historyLines, historyDots } = typhoonToGeoJSON(typhoons, selectedTime);
       (map.getSource('typhoon-pos')          as maplibregl.GeoJSONSource).setData(positions);
       (map.getSource('typhoon-track')        as maplibregl.GeoJSONSource).setData(tracks);
       (map.getSource('typhoon-wind')         as maplibregl.GeoJSONSource).setData(windCircles);
@@ -463,7 +526,7 @@ export function DisasterMap() {
       (map.getSource('typhoon-history-dots') as maplibregl.GeoJSONSource).setData(historyDots);
     };
     if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
-  }, [typhoons]);
+  }, [typhoons, selectedTime]);
 
   // 地震マーカー更新
   useEffect(() => {
@@ -739,12 +802,16 @@ export function DisasterMap() {
     }
 
     setGeoStatus('loading');
+    shouldFlyRef.current = true; // 次の位置取得でflyTo
 
     const handlePos = (pos: GeolocationPosition) => {
       const { latitude: lat, longitude: lng, accuracy } = pos.coords;
       setUserLocation({ lat, lng, accuracy });
       setGeoStatus('active');
-      mapRef.current?.flyTo({ center: [lng, lat], zoom: 12, speed: 1.5 });
+      if (shouldFlyRef.current) {
+        shouldFlyRef.current = false;
+        mapRef.current?.flyTo({ center: [lng, lat], zoom: 12, speed: 1.5 });
+      }
     };
     const handleErr = (err: GeolocationPositionError) => {
       if (err.code === err.PERMISSION_DENIED) {

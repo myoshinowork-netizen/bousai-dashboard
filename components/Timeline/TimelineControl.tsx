@@ -63,7 +63,7 @@ export function TimelineControl({ isMobile = false }: { isMobile?: boolean }) {
 
   return (
     <div
-      style={{ borderTop: '1px solid var(--cp-border)', background: 'var(--cp-panel)' }}
+      style={{ borderTop: '1px solid var(--cp-border)', background: 'var(--cp-panel)', paddingBottom: isMobile ? 'max(8px, env(safe-area-inset-bottom))' : undefined }}
       className={`shrink-0 ${isMobile ? 'px-3 py-2' : 'px-4 py-2'}`}
     >
       {/* ヘッダー行 */}

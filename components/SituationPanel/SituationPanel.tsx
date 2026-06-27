@@ -367,11 +367,11 @@ function EvacLevelBar({ evacLevel }: { evacLevel: EvacLevel }) {
       </div>
 
       {/* ラベル */}
-      <div style={{ flex: 1 }}>
-        <div style={{ color: em.color, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', lineHeight: 1.2 }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ color: em.color, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {em.label}
         </div>
-        <div style={{ color: em.color, fontSize: 7, opacity: 0.85, letterSpacing: '0.08em', lineHeight: 1.2 }}>
+        <div style={{ color: em.color, fontSize: 7, opacity: 0.85, letterSpacing: '0.04em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {em.sublabel}
         </div>
       </div>
@@ -424,6 +424,8 @@ function ReportCard({
         padding: '6px 8px',
         boxShadow: highlighted ? '0 0 8px rgba(0,229,255,0.25)' : 'none',
         transition: 'box-shadow 0.2s, background 0.2s',
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
       {/* ヘッダー行 */}
@@ -485,6 +487,8 @@ function ReportCard({
                   paddingLeft: 10,
                   position: 'relative',
                   marginBottom: 2,
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word',
                 }}
               >
                 <span
