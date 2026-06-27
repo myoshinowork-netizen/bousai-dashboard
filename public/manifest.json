@@ -1,0 +1,28 @@
+{
+  "name": "CRISIS GOVERNANCE PROTOCOL",
+  "short_name": "CRISIS GOV.",
+  "description": "統合防災ダッシュボード — 地震・台風・降水・ハザード情報をリアルタイム可視化",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05050a",
+  "theme_color": "#05050a",
+  "lang": "ja",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["weather", "utilities", "navigation"],
+  "screenshots": []
+}

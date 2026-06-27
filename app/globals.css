@@ -1,26 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cp-red:       #ff1744;
+  --cp-red-dim:   rgba(255, 23, 68, 0.25);
+  --cp-red-glow:  rgba(255, 23, 68, 0.5);
+  --cp-cyan:      #00e5ff;
+  --cp-cyan-dim:  rgba(0, 229, 255, 0.2);
+  --cp-yellow:    #ffd600;
+  --cp-orange:    #ff6d00;
+  --cp-bg:        #05050a;
+  --cp-panel:     #0b0b16;
+  --cp-panel2:    #0f0f1e;
+  --cp-border:    rgba(255, 23, 68, 0.35);
+  --cp-border2:   rgba(0, 229, 255, 0.3);
+  --cp-text:      #d0d0e8;
+  --cp-muted:     #44445a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+* { box-sizing: border-box; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html, body { height: 100%; margin: 0; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+/* スキャンライン オーバーレイ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* CP パネル共通スタイル */
+.cp-panel {
+  position: relative;
+  background: var(--cp-panel);
+  border: 1px solid var(--cp-border);
+}
+.cp-panel::before,
+.cp-panel::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--cp-cyan);
+  border-style: solid;
+  z-index: 1;
+}
+.cp-panel::before { top: -1px; left: -1px;   border-width: 2px 0 0 2px; }
+.cp-panel::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* CP ラベル */
+.cp-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cp-muted);
+}
+
+/* CP タイトル */
+.cp-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cp-cyan);
+}
+
+/* アラートパルス */
+@keyframes cp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+.cp-pulse { animation: cp-pulse 1s ease-in-out infinite; }
+
+/* アラートフラッシュ */
+@keyframes cp-flash {
+  0%, 100% { background: rgba(255,23,68,0.15); }
+  50%       { background: rgba(255,23,68,0.35); }
+}
+.cp-flash { animation: cp-flash 0.8s ease-in-out infinite; }
+
+/* スクロールバー */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--cp-bg); }
+::-webkit-scrollbar-thumb { background: var(--cp-red-dim); border-radius: 2px; }
+
+/* ──────────────────────────────────────
+   モバイル最適化
+   ────────────────────────────────────── */
+
+/* モバイル時パネルのフォントスケール */
+[data-mobile='true'] { zoom: 1.25; }
+
+/* タップ領域の最小サイズ保証 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* iOS safe area 対応 */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
+
+/* モバイル用フォントスケール */
+@media (max-width: 1023px) {
+  .cp-label  { font-size: 11px; }
+  .cp-title  { font-size: 12px; }
+
+  /* MapLibre コントロールをタッチしやすく */
+  .maplibregl-ctrl-group button {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+  }
+
+  /* スクロールバー非表示（モバイルはネイティブ） */
+  ::-webkit-scrollbar { display: none; }
+
+  /* 地図帰属テキストをさらに小さく */
+  .maplibregl-ctrl-attrib { font-size: 8px !important; }
+}
+
+/* スライダーのタッチ領域を広げる */
+input[type='range'] {
+  -webkit-appearance: none;
+  height: 20px;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* MapLibre ポップアップ */
+.maplibregl-popup-content {
+  background: var(--cp-panel2) !important;
+  color: var(--cp-text) !important;
+  border: 1px solid var(--cp-border) !important;
+  border-radius: 2px !important;
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+}
+.maplibregl-popup-tip { display: none !important; }
+.maplibregl-ctrl-group {
+  background: var(--cp-panel) !important;
+  border: 1px solid var(--cp-border) !important;
+  border-radius: 2px !important;
+}
+.maplibregl-ctrl button {
+  background: transparent !important;
+  color: var(--cp-cyan) !important;
+}
+.maplibregl-ctrl-attrib {
+  background: rgba(5,5,10,0.8) !important;
+  color: var(--cp-muted) !important;
+  font-size: 9px !important;
 }
