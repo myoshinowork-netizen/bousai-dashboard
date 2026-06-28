@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import type { DisasterEvent, DisasterEventType, Severity } from '@/lib/model';
 import type { LayerKey } from '@/store/useDisasterStore';
@@ -44,11 +44,11 @@ function formatTime(iso: string) {
   });
 }
 
-function EventItem({ event }: { event: DisasterEvent }) {
+const EventItem = memo(function EventItem({ event }: { event: DisasterEvent }) {
   const selectEvent = useDisasterStore((s) => s.selectEvent);
   const enableLayer = useDisasterStore((s) => s.enableLayer);
-  const selected    = useDisasterStore((s) => s.selectedEvent);
-  const isSelected  = selected?.id === event.id;
+  // selectedEvent 全体ではなく isSelected の真偽値のみ購読（選択時の再レンダリングを2件に抑制）
+  const isSelected  = useDisasterStore((s) => s.selectedEvent?.id === event.id);
   const color       = SEV_COLOR[event.severity];
   const badge       = TYPE_BADGE[event.type];
 
@@ -115,7 +115,7 @@ function EventItem({ event }: { event: DisasterEvent }) {
       )}
     </button>
   );
-}
+});
 
 export function EventFeed() {
   const events       = useDisasterStore((s) => s.events);

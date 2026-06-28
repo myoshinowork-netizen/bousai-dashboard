@@ -247,13 +247,13 @@ function initAllLayers(map: maplibregl.Map) {
   // ── ハザード・降水タイル ──
   map.addSource('hazard_max',   { type: 'raster', tiles: [HAZARD_TILE],    tileSize: 256, maxzoom: 17 });
   map.addSource('hazard_plan',  { type: 'raster', tiles: [FLOOD_TILE],     tileSize: 256, maxzoom: 17 });
-  map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, maxzoom: 10 });
+  map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
   map.addLayer({ id: 'hazard-max',  type: 'raster', source: 'hazard_max',  paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } });
   map.addLayer({ id: 'hazard-plan', type: 'raster', source: 'hazard_plan', paint: { 'raster-opacity': 0.5 }, layout: { visibility: 'none' } });
   map.addLayer({ id: 'rain',        type: 'raster', source: 'rain_nowcast',paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' } });
 
   // ── 雷ナウキャスト ──
-  map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, maxzoom: 10 });
+  map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
   map.addLayer({ id: 'thunder', type: 'raster', source: 'thunder_nowcast',
     paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } });
 
@@ -493,12 +493,11 @@ export const DisasterMap = memo(function DisasterMap() {
   // 降水タイル URL 更新（タイムライン対応）
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map) return;
 
     // タイムラインが設定されていれば最近傍の履歴タイルを選択
     let tileTime: string | null = rainTileTime;
     if (selectedTime !== null && rainTileHistory.length > 0) {
-      // validtime 形式: "YYYYMMDDHHMMSS" → Date に変換して最近傍を探す
       const target = selectedTime;
       let best: string | null = null;
       let bestDiff = Infinity;
@@ -513,14 +512,17 @@ export const DisasterMap = memo(function DisasterMap() {
     }
 
     if (!tileTime) return;
-    const src = map.getSource('rain_nowcast') as maplibregl.RasterTileSource | undefined;
-    if (src) src.setTiles([rainTileUrl(tileTime)]);
+    const apply = () => {
+      const src = map.getSource('rain_nowcast') as maplibregl.RasterTileSource | undefined;
+      if (src) src.setTiles([rainTileUrl(tileTime!)]);
+    };
+    if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
   }, [rainTileTime, rainTileHistory, selectedTime]);
 
   // 雷タイル URL 更新
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !thunderTileTime || !map.isStyleLoaded()) return;
+    if (!map || !thunderTileTime) return;
     const apply = () => {
       const src = map.getSource('thunder_nowcast') as maplibregl.RasterTileSource | undefined;
       if (src) src.setTiles([thunderTileUrl(thunderTileTime)]);
