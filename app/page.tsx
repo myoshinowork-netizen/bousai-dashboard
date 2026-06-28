@@ -314,8 +314,8 @@ export default function DashboardPage() {
             {isMobile && (
               <div style={{
                 position: 'absolute',
-                right: 60,
-                bottom: 16,
+                right: 10,
+                bottom: 100,
                 zIndex: 20,
                 display: 'flex',
                 flexDirection: 'column',
