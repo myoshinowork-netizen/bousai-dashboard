@@ -11,9 +11,11 @@ import { MapOverlays }      from '@/components/MapOverlays/MapOverlays';
 import { useQuakePoller }   from '@/lib/useQuakePoller';
 import { useWeatherPoller } from '@/lib/useWeatherPoller';
 import { useEewListener }   from '@/lib/useEewListener';
+import { useAutoLocation }  from '@/lib/useAutoLocation';
 import { EewModal }         from '@/components/EewModal/EewModal';
 import { NewsTicker }       from '@/components/NewsTicker/NewsTicker';
 import { NewsModal }        from '@/components/NewsModal/NewsModal';
+import { LocalAlert }       from '@/components/LocalAlert/LocalAlert';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import { useIsMobile }      from '@/lib/useIsMobile';
 
@@ -235,6 +237,7 @@ export default function DashboardPage() {
   useQuakePoller();
   useWeatherPoller();
   useEewListener();
+  useAutoLocation();
 
   const isMobile   = useIsMobile();
   const [menuOpen,       setMenuOpen]       = useState(false);
@@ -431,8 +434,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 下部: イベントフィード (40%) */}
+            {/* 下部: 周辺情報 + イベントフィード (40%) */}
             <div className="flex flex-col overflow-hidden" style={{ flex: 2 }}>
+              <LocalAlert />
               <EventFeed />
             </div>
           </aside>
@@ -510,7 +514,12 @@ export default function DashboardPage() {
 
             {/* コンテンツ */}
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {mobilePanel === 'events'   && <EventFeed />}
+              {mobilePanel === 'events'   && (
+                <div className="flex flex-col overflow-hidden h-full">
+                  <LocalAlert />
+                  <EventFeed />
+                </div>
+              )}
               {mobilePanel === 'layers'   && (
                 <div className="p-3 overflow-y-auto h-full">
                   <LayerControl />
