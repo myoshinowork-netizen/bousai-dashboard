@@ -296,6 +296,11 @@ body::after {
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @media (max-width: 1023px) {
   .cp-label { font-size: 11px; }
   .cp-title { font-size: 12px; }
