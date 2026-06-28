@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import type { ForecastDay } from '@/lib/model';
 
@@ -141,6 +141,54 @@ function PopBar({ pop }: { pop: number }) {
 }
 
 // ────────────────────────────────────────────────
+// 週間天気解説文を生成
+// ────────────────────────────────────────────────
+function buildWeeklyOutlook(days: ForecastDay[], areaName: string): string {
+  if (days.length === 0) return '';
+
+  const today = days[0];
+  const rest  = days.slice(1);
+
+  // 今日の天気
+  const todayPop = today.popMax;
+  const todayDesc = todayPop >= 50
+    ? `今日は${today.weather}の見込みで、降水確率は${todayPop}%と高めです。`
+    : `今日は${today.weather}の見込みです。`;
+
+  // 今週の傾向
+  const rainDays   = rest.filter((d) => d.popMax >= 50);
+  const highTempDays = rest.filter((d) => d.tempMax !== undefined && d.tempMax >= 30);
+  const maxTemp    = rest.reduce<number | undefined>((m, d) => d.tempMax !== undefined ? (m === undefined ? d.tempMax : Math.max(m, d.tempMax)) : m, undefined);
+  const minTemp    = rest.reduce<number | undefined>((m, d) => d.tempMin !== undefined ? (m === undefined ? d.tempMin : Math.min(m, d.tempMin)) : m, undefined);
+
+  const DAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
+  function dayName(dateStr: string) {
+    return DAY_JA[new Date(dateStr).getDay()] + '曜';
+  }
+
+  const lines: string[] = [todayDesc];
+
+  if (rainDays.length === 0) {
+    lines.push('今週は雨の可能性が低く、比較的安定した天気が続く見込みです。');
+  } else if (rainDays.length >= 4) {
+    lines.push('今週は雨天が多く、週を通じて不安定な天気が続く見込みです。');
+  } else {
+    const rainDayNames = rainDays.map((d) => dayName(d.date)).join('・');
+    lines.push(`${rainDayNames}は雨が降りやすく、降水確率が高い見込みです。`);
+  }
+
+  if (highTempDays.length > 0 && maxTemp !== undefined) {
+    lines.push(`最高気温は${maxTemp}℃に達する日もあり、熱中症に注意が必要です。`);
+  } else if (maxTemp !== undefined && minTemp !== undefined) {
+    lines.push(`気温は最高${maxTemp}℃・最低${minTemp}℃程度の見込みです。`);
+  }
+
+  if (areaName) lines.push(`（${areaName}の予報）`);
+
+  return lines.join(' ');
+}
+
+// ────────────────────────────────────────────────
 // 1日分の行
 // ────────────────────────────────────────────────
 function DayRow({ day, isToday }: { day: ForecastDay; isToday: boolean }) {
@@ -215,14 +263,16 @@ export function WeeklyForecast() {
   const userLocation    = useDisasterStore((s) => s.userLocation);
   const setForecastDays = useDisasterStore((s) => s.setForecastDays);
   const setForecastArea = useDisasterStore((s) => s.setForecastArea);
+  const [forecastAreaName, setForecastAreaName] = useState('');
 
   useEffect(() => {
     async function fetchForecast() {
       try {
         const res = await fetch(`/api/weather-forecast?area=${forecastArea}`);
         if (!res.ok) return;
-        const { days } = await res.json();
+        const { days, areaName } = await res.json();
         setForecastDays(days ?? []);
+        if (areaName) setForecastAreaName(areaName);
       } catch { /* ignore */ }
     }
     fetchForecast();
@@ -306,16 +356,49 @@ export function WeeklyForecast() {
         <span style={{ color: 'var(--cp-muted)', fontSize: 8, textAlign: 'right', letterSpacing: '0.05em' }}>高/低°C</span>
       </div>
 
-      {/* 予報リスト */}
+      {/* 予報リスト + 解説 */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {forecastDays.length === 0 ? (
           <div style={{ color: 'var(--cp-muted)', fontSize: 10, textAlign: 'center', padding: '20px 0', letterSpacing: '0.1em' }}>
             LOADING...
           </div>
         ) : (
-          forecastDays.slice(0, 7).map((day) => (
-            <DayRow key={day.date} day={day} isToday={day.date === today} />
-          ))
+          <>
+            {forecastDays.slice(0, 7).map((day) => (
+              <DayRow key={day.date} day={day} isToday={day.date === today} />
+            ))}
+            {/* 週間天気解説文 */}
+            {forecastDays.length > 0 && (
+              <div style={{
+                margin: '8px 10px 10px',
+                padding: '8px 10px',
+                background: 'rgba(0,229,255,0.04)',
+                border: '1px solid rgba(0,229,255,0.12)',
+                borderLeft: '2px solid rgba(0,229,255,0.4)',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 7,
+                  letterSpacing: '0.16em',
+                  color: 'var(--cp-cyan)',
+                  marginBottom: 5,
+                  textTransform: 'uppercase',
+                }}>
+                  ◈ WEEKLY OUTLOOK
+                </div>
+                <p style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 10,
+                  color: 'var(--cp-text)',
+                  lineHeight: 1.7,
+                  letterSpacing: '0.03em',
+                  margin: 0,
+                }}>
+                  {buildWeeklyOutlook(forecastDays, forecastAreaName)}
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

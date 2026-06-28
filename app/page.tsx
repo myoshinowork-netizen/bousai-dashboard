@@ -307,7 +307,7 @@ export default function DashboardPage() {
 
         {/* デスクトップ: 注意書き */}
         {!isMobile && (
-          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cp-text-dim)', letterSpacing: '0.06em' }}>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cp-text-dim)', letterSpacing: '0.06em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
             ⚠ 本情報は参考値。公式発表・自治体指示を最優先に。
           </span>
         )}

@@ -247,13 +247,13 @@ function initAllLayers(map: maplibregl.Map) {
   // ── ハザード・降水タイル ──
   map.addSource('hazard_max',   { type: 'raster', tiles: [HAZARD_TILE],    tileSize: 256, maxzoom: 17 });
   map.addSource('hazard_plan',  { type: 'raster', tiles: [FLOOD_TILE],     tileSize: 256, maxzoom: 17 });
-  map.addSource('rain_nowcast', { type: 'raster', tiles: ['https://www.jma.go.jp/bosai/jmatile/data/nowc/20240101000000/none/20240101000000/surf/hrpns/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 10 });
+  map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, maxzoom: 10 });
   map.addLayer({ id: 'hazard-max',  type: 'raster', source: 'hazard_max',  paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } });
   map.addLayer({ id: 'hazard-plan', type: 'raster', source: 'hazard_plan', paint: { 'raster-opacity': 0.5 }, layout: { visibility: 'none' } });
   map.addLayer({ id: 'rain',        type: 'raster', source: 'rain_nowcast',paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' } });
 
   // ── 雷ナウキャスト ──
-  map.addSource('thunder_nowcast', { type: 'raster', tiles: ['https://www.jma.go.jp/bosai/jmatile/data/thunder/20240101000000/none/20240101000000/surf/thunder/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 10 });
+  map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, maxzoom: 10 });
   map.addLayer({ id: 'thunder', type: 'raster', source: 'thunder_nowcast',
     paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } });
 
@@ -412,6 +412,18 @@ export function DisasterMap() {
 
     map.once('style.load', () => {
       initAllLayers(map);
+
+      // style.load 時点で rainTileTime が取得済みであればすぐ反映（非同期ポーリングより先に来ることがある）
+      const initRainTime = useDisasterStore.getState().rainTileTime;
+      if (initRainTime) {
+        const rainSrc = map.getSource('rain_nowcast') as maplibregl.RasterTileSource | undefined;
+        if (rainSrc) rainSrc.setTiles([rainTileUrl(initRainTime)]);
+      }
+      const initThunderTime = useDisasterStore.getState().thunderTileTime;
+      if (initThunderTime) {
+        const thunderSrc = map.getSource('thunder_nowcast') as maplibregl.RasterTileSource | undefined;
+        if (thunderSrc) thunderSrc.setTiles([thunderTileUrl(initThunderTime)]);
+      }
 
       // 台風データを地図ソースに反映するヘルパー（selectedTimeはstoreから毎回取得）
       function applyTyphoons(tcs: TyphoonInfo[]) {

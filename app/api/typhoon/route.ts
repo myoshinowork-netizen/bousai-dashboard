@@ -229,7 +229,12 @@ export async function GET() {
     const typhoons: TyphoonInfo[] = [];
 
     // ── アクティブ台風 ──
+    // LOW（低気圧に変質）は非表示
+    const SKIP_CATEGORIES = new Set(['LOW', 'EX', 'REMNANTS']);
+
     for (const tc of tcList) {
+      if (SKIP_CATEGORIES.has(tc.category)) continue;
+
       const xmlHistory = historyMap.get(tc.typhoonNumber) ?? [];
       const latest = xmlHistory.at(-1);
       if (!latest) {
@@ -273,10 +278,15 @@ export async function GET() {
     }
 
     // ── 完了した台風（Best Track のみに存在） ──
+    // 最後の観測点が30日以上前のものは非表示
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     const activeTcNumbers = new Set(tcList.map((t) => t.typhoonNumber));
     for (const bt of bestTrackTcs) {
       if (activeTcNumbers.has(bt.typhoonNumber)) continue;
       if (bt.points.length === 0) continue;
+
+      const lastTime = new Date(bt.points.at(-1)!.time).getTime();
+      if (Date.now() - lastTime > THIRTY_DAYS_MS) continue;
 
       const lastPt   = bt.points.at(-1)!;
       const firstPt  = bt.points[0];

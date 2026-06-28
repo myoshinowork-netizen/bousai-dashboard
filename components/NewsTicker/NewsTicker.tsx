@@ -163,8 +163,8 @@ export function NewsTicker({ onOpenModal }: { onOpenModal: () => void }) {
   // 区切り記号付きで1本の文字列に
   const tickerText = sentences.map((s) => s.text).join('　　◆　　');
 
-  // アニメーション時間 = 文字数 × 0.13s
-  const duration = Math.max(20, tickerText.length * 0.13);
+  // アニメーション時間 = 文字数 × 0.07s
+  const duration = Math.max(10, tickerText.length * 0.07);
 
   return (
     <div

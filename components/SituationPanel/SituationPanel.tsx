@@ -564,6 +564,14 @@ function ReportCard({
 // ────────────────────────────────────────────────
 // メインコンポーネント
 // ────────────────────────────────────────────────
+type NewsItem = {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+  sourceColor: string;
+};
+
 export function SituationPanel({
   isMobile = false,
   onOpenChange,
@@ -574,6 +582,22 @@ export function SituationPanel({
   const [open, setOpen] = useState(() =>
     typeof window === 'undefined' ? true : !window.matchMedia('(max-width: 1023px)').matches
   );
+
+  // ニュースサマリー（最新3件）
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const res = await fetch('/api/news');
+        if (!res.ok) return;
+        const data = await res.json();
+        setNewsItems((data.items ?? []).slice(0, 4));
+      } catch { /* ignore */ }
+    }
+    fetchNews();
+    const id = setInterval(fetchNews, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const toggleOpen = (v: boolean) => {
     setOpen(v);
@@ -778,6 +802,64 @@ export function SituationPanel({
                 highlighted={!!selectedReport}
               />
             ))}
+
+            {/* ニュースサマリー */}
+            {newsItems.length > 0 && (
+              <div style={{ marginTop: 8, borderTop: '1px solid var(--cp-border)', paddingTop: 6 }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 7,
+                  letterSpacing: '0.16em',
+                  color: 'var(--cp-amber)',
+                  marginBottom: 4,
+                }}>
+                  ◈ 最新情報
+                </div>
+                {newsItems.map((item, i) => (
+                  <div key={i} style={{
+                    marginBottom: 5,
+                    paddingBottom: 5,
+                    borderBottom: i < newsItems.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  }}>
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'block',
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: 9,
+                        color: 'var(--cp-text)',
+                        lineHeight: 1.4,
+                        letterSpacing: '0.02em',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--cp-cyan)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--cp-text)'; }}
+                    >
+                      {item.title}
+                    </a>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 7,
+                        color: item.sourceColor,
+                        letterSpacing: '0.06em',
+                        opacity: 0.8,
+                      }}>
+                        {item.source}
+                      </span>
+                      {item.pubDate && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-muted)' }}>
+                          {new Date(item.pubDate).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* フッター */}
             <div
