@@ -383,7 +383,7 @@ function CardItem({ card }: { card: NewsCard }) {
           {/* 説明文 */}
           <div style={{ paddingTop: 8, marginBottom: 8 }}>
             {card.bodyLines.map((line, i) => (
-              <p key={i} style={{ color: 'var(--cp-muted)', fontSize: 10, lineHeight: 1.7, margin: '0 0 4px' }}>{line}</p>
+              <p key={i} style={{ color: '#c8d0e0', fontSize: 10, lineHeight: 1.8, margin: '0 0 5px' }}>{line}</p>
             ))}
           </div>
 
@@ -392,7 +392,7 @@ function CardItem({ card }: { card: NewsCard }) {
             <div style={{ marginBottom: 10 }}>
               <div style={{ color: color, fontSize: 8, letterSpacing: '0.12em', marginBottom: 5 }}>▶ 推奨アクション</div>
               {card.actions.map((a, i) => (
-                <div key={i} style={{ color: 'var(--cp-text)', fontSize: 9, lineHeight: 1.6, padding: '2px 0', display: 'flex', gap: 6 }}>
+                <div key={i} style={{ color: '#e8edf5', fontSize: 9, lineHeight: 1.7, padding: '2px 0', display: 'flex', gap: 6 }}>
                   <span style={{ color, flexShrink: 0 }}>›</span>
                   <span>{a}</span>
                 </div>
@@ -402,7 +402,7 @@ function CardItem({ card }: { card: NewsCard }) {
 
           {/* リンク */}
           <div>
-            <div style={{ color: 'var(--cp-muted)', fontSize: 8, letterSpacing: '0.1em', marginBottom: 5 }}>▶ 公式情報・外部リンク</div>
+            <div style={{ color: '#8fa0b8', fontSize: 8, letterSpacing: '0.1em', marginBottom: 5 }}>▶ 公式情報・外部リンク</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {card.links.map((link) => (
                 <a
@@ -531,11 +531,19 @@ export function NewsModal({ open, onClose }: { open: boolean; onClose: () => voi
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, backdropFilter: 'blur(3px)' }} />
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
-        maxHeight: '85svh', display: 'flex', flexDirection: 'column',
-        background: 'rgba(4,6,14,0.98)',
-        border: '1px solid var(--cp-cyan)', borderBottom: 'none',
+        position: 'fixed',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 101,
+        width: 'min(480px, 92vw)',
+        maxHeight: '80svh',
+        display: 'flex', flexDirection: 'column',
+        background: 'rgba(8,12,26,0.98)',
+        border: '1px solid var(--cp-cyan)',
+        borderRadius: 6,
+        boxShadow: '0 0 40px rgba(0,229,255,0.15), 0 8px 32px rgba(0,0,0,0.7)',
         fontFamily: 'var(--font-geist-mono, monospace)',
+        overflow: 'hidden',
       }}>
         {/* モーダルヘッダー */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: '1px solid var(--cp-border)', flexShrink: 0 }}>
