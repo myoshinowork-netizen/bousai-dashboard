@@ -315,7 +315,7 @@ export default function DashboardPage() {
               <div style={{
                 position: 'absolute',
                 right: 10,
-                bottom: 100,
+                bottom: 160,
                 zIndex: 20,
                 display: 'flex',
                 flexDirection: 'column',
