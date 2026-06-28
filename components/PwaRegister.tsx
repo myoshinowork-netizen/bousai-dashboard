@@ -8,19 +8,17 @@ export function PwaRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    // SW登録
-    navigator.serviceWorker
-      .register('/sw.js')
-      .catch((err) => console.warn('SW registration failed:', err));
+    // 開発中は既存SWをアンレジスターしてHMR競合を防ぐ
+    if (process.env.NODE_ENV !== 'production') {
+      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+      return;
+    }
 
-    // 新バージョン適用の通知を受け取る
+    navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('SW registration failed:', err));
+
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'NEW_VERSION') {
-        // 3秒後に自動リロード（ユーザーに気づかせる猶予）
         setShowBanner(true);
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
       }
     };
 
@@ -44,15 +42,24 @@ export function PwaRegister() {
         padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
         backdropFilter: 'blur(8px)',
         whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ color: 'var(--cp-cyan)', fontSize: 10, animation: 'spin 1s linear infinite', display: 'inline-block' }}>◈</span>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--cp-text)', letterSpacing: '0.1em' }}>
-        新バージョンを適用中…
+        新バージョンがあります
       </span>
+      <button
+        onClick={() => window.location.reload()}
+        style={{
+          fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--cp-cyan)',
+          background: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.4)',
+          padding: '3px 8px', cursor: 'pointer', letterSpacing: '0.1em',
+        }}
+      >
+        再読込
+      </button>
     </div>
   );
 }

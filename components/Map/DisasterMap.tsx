@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDisasterStore } from '@/store/useDisasterStore';
@@ -352,7 +352,7 @@ function initAllLayers(map: maplibregl.Map) {
     paint: { 'text-color': '#ff6060', 'text-halo-color': '#05050a', 'text-halo-width': 2, 'text-opacity': 0 } });
 }
 
-export function DisasterMap() {
+export const DisasterMap = memo(function DisasterMap() {
   const mapRef            = useRef<maplibregl.Map | null>(null);
   const containerRef      = useRef<HTMLDivElement>(null);
   const markersRef        = useRef<maplibregl.Marker[]>([]);
@@ -456,7 +456,7 @@ export function DisasterMap() {
       unsubTyphoon?.();
       if (waveRafRef.current) cancelAnimationFrame(waveRafRef.current);
       if (geoWatchRef.current !== null) navigator.geolocation?.clearWatch(geoWatchRef.current);
-      mapRef.current?.remove();
+      try { mapRef.current?.remove(); } catch { /* ignore MapLibre cleanup errors */ }
       mapRef.current = null;
     };
   }, []);
@@ -909,4 +909,4 @@ export function DisasterMap() {
       )}
     </div>
   );
-}
+});

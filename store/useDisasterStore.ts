@@ -50,6 +50,9 @@ type DisasterStore = {
   // EEW（緊急地震速報）
   eewAlert: EewData | null;
 
+  // 表示モード
+  simpleMode: boolean;
+
   // アクション
   setEvents: (events: DisasterEvent[]) => void;
   addEvents: (events: DisasterEvent[]) => void;
@@ -67,6 +70,7 @@ type DisasterStore = {
   setForecastArea: (area: string) => void;
   setUserLocation: (loc: { lat: number; lng: number; accuracy: number } | null) => void;
   setEewAlert: (eew: EewData | null) => void;
+  setSimpleMode: (v: boolean) => void;
 };
 
 export const useDisasterStore = create<DisasterStore>((set) => ({
@@ -93,6 +97,7 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   forecastArea: '130000',
   userLocation: null,
   eewAlert: null,
+  simpleMode: false,
 
   setEvents: (events) => set({ events }),
   addEvents: (incoming) =>
@@ -118,4 +123,5 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   setForecastArea: (forecastArea) => set({ forecastArea }),
   setUserLocation: (userLocation) => set({ userLocation }),
   setEewAlert: (eewAlert) => set({ eewAlert }),
+  setSimpleMode: (simpleMode) => set({ simpleMode }),
 }));

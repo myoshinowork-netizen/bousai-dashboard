@@ -15,7 +15,9 @@ import { useAutoLocation }  from '@/lib/useAutoLocation';
 import { EewModal }         from '@/components/EewModal/EewModal';
 import { NewsTicker }       from '@/components/NewsTicker/NewsTicker';
 import { NewsModal }        from '@/components/NewsModal/NewsModal';
-import { LocalAlert }       from '@/components/LocalAlert/LocalAlert';
+import { LocalAlert }        from '@/components/LocalAlert/LocalAlert';
+import { SimpleDashboard }          from '@/components/SimpleMode/SimpleDashboard';
+import { SimpleModeErrorBoundary } from '@/components/SimpleMode/SimpleModeErrorBoundary';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import { useIsMobile }      from '@/lib/useIsMobile';
 
@@ -239,7 +241,9 @@ export default function DashboardPage() {
   useEewListener();
   useAutoLocation();
 
-  const isMobile   = useIsMobile();
+  const isMobile    = useIsMobile();
+  const simpleMode  = useDisasterStore((s) => s.simpleMode);
+  const setSimpleMode = useDisasterStore((s) => s.setSimpleMode);
   const [menuOpen,       setMenuOpen]       = useState(false);
   const [mobilePanel,    setMobilePanel]    = useState<MobilePanel>(null);
   const [newsModalOpen,  setNewsModalOpen]  = useState(false);
@@ -326,6 +330,38 @@ export default function DashboardPage() {
           <Clock />
         </div>
 
+        {/* 簡易/詳細モード切替ボタン */}
+        <button
+          onClick={() => requestAnimationFrame(() => setSimpleMode(!simpleMode))}
+          title={simpleMode ? '詳細表示モードに切り替え' : '簡易表示モードに切り替え'}
+          style={{
+            flexShrink: 0,
+            marginLeft: isMobile ? 6 : 10,
+            padding: isMobile ? '5px 8px' : '5px 12px',
+            background: simpleMode
+              ? 'rgba(255,255,255,0.18)'
+              : 'rgba(0,229,255,0.08)',
+            border: simpleMode
+              ? '1.5px solid rgba(255,255,255,0.5)'
+              : '1.5px solid rgba(0,229,255,0.4)',
+            borderRadius: 20,
+            color: simpleMode ? '#fff' : 'var(--cp-cyan)',
+            fontSize: isMobile ? 10 : 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            letterSpacing: '0.03em',
+            transition: 'all 0.2s',
+          }}
+        >
+          <span style={{ fontSize: isMobile ? 12 : 13 }}>
+            {simpleMode ? '🔬' : '👁'}
+          </span>
+          {!isMobile && (simpleMode ? '詳細モード' : '簡易モード')}
+        </button>
+
         {/* モバイル: ハンバーガーボタン */}
         {isMobile && (
           <button
@@ -362,8 +398,8 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* メインレイアウト */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* メインレイアウト — MapLibreのGPUクラッシュ回避のため常にレンダリング。簡易モードはoverlayで覆う */}
+      <div className="flex flex-1 overflow-hidden" style={{ position: 'relative' }}>
 
         {/* 地図エリア */}
         <main className="flex flex-col flex-1 overflow-hidden">
@@ -421,6 +457,19 @@ export default function DashboardPage() {
           <TimelineControl isMobile={isMobile} />
         </main>
 
+        {/* 簡易モード overlay — MapLibreを隠さずにコンテンツを覆う */}
+        {simpleMode && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 50,
+            background: '#f0f4f8', overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            <SimpleModeErrorBoundary>
+              <SimpleDashboard />
+            </SimpleModeErrorBoundary>
+          </div>
+        )}
+
         {/* デスクトップ: サイドパネル */}
         {!isMobile && (
           <aside
@@ -450,7 +499,7 @@ export default function DashboardPage() {
       </div>
 
       {/* モバイル: フローティングパネル（メニュー選択時） */}
-      {isMobile && mobilePanel !== null && (
+      {!simpleMode && isMobile && mobilePanel !== null && (
         <>
           {/* 背景タップで閉じる（半透明） */}
           <div
@@ -538,7 +587,7 @@ export default function DashboardPage() {
       )}
 
       {/* デスクトップ: フッター */}
-      {!isMobile && (
+      {!isMobile && !simpleMode && (
         <footer
           style={{ borderTop: '1px solid var(--cp-border)', background: 'var(--cp-panel)' }}
           className="flex items-center justify-between px-4 py-1 shrink-0"

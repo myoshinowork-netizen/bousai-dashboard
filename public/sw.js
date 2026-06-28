@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cgp-v10';
+const CACHE_NAME = 'cgp-v11';
 
 const SHELL_ASSETS = [
   '/',
@@ -27,7 +27,13 @@ self.addEventListener('activate', (event) => {
       .then(() =>
         // 全クライアントに「新バージョン適用済み」を通知
         self.clients.matchAll({ type: 'window' }).then((clients) => {
-          clients.forEach((client) => client.postMessage({ type: 'NEW_VERSION', version: CACHE_NAME }));
+          clients.forEach((client) => {
+            // localhostでは通知しない（開発中のHMR競合を防ぐ）
+            const url = new URL(client.url);
+            if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+              client.postMessage({ type: 'NEW_VERSION', version: CACHE_NAME });
+            }
+          });
         })
       )
   );
