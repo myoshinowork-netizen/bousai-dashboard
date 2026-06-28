@@ -31,10 +31,30 @@ function LiveClock() {
     const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+  const hm = time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  const ss = time.toLocaleTimeString('ja-JP', { second: '2-digit' });
   return (
-    <span style={{ fontFamily: 'var(--font-orbitron)', color: 'var(--cp-red)', fontSize: 13, letterSpacing: '0.1em' }}>
-      {time.toLocaleTimeString('ja-JP')}
-    </span>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+      <span style={{
+        fontFamily: 'var(--font-display)',
+        color: 'var(--cp-red-bright)',
+        fontSize: 22,
+        letterSpacing: '0.06em',
+        lineHeight: 1,
+        textShadow: '0 0 12px var(--cp-red-glow)',
+      }}>
+        {hm}
+      </span>
+      <span style={{
+        fontFamily: 'var(--font-mono)',
+        color: 'var(--cp-red)',
+        fontSize: 11,
+        opacity: 0.75,
+        letterSpacing: '0.04em',
+      }}>
+        :{ss}
+      </span>
+    </div>
   );
 }
 
@@ -42,10 +62,10 @@ function Clock() {
   const events = useDisasterStore((s) => s.events);
   const latest = events[0];
   return (
-    <div className="flex flex-col items-end">
+    <div className="flex flex-col items-end" style={{ gap: 1 }}>
       <LiveClock />
       {latest && (
-        <span className="cp-label" style={{ fontSize: 9 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cp-text-dim)', letterSpacing: '0.1em' }}>
           LAST: {new Date(latest.occurredAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
       )}
@@ -55,12 +75,13 @@ function Clock() {
 
 function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
   return (
-    <div className="flex items-center gap-1">
-      <span
-        style={{ background: ok ? 'var(--cp-cyan)' : 'var(--cp-red)', width: 5, height: 5 }}
-        className={`rounded-full ${ok ? '' : 'cp-pulse'}`}
-      />
-      <span className="cp-label" style={{ fontSize: 9 }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span style={{
+        background: ok ? 'var(--cp-cyan)' : 'var(--cp-red-bright)',
+        width: 4, height: 4,
+        boxShadow: ok ? '0 0 5px var(--cp-cyan-glow)' : '0 0 5px var(--cp-red-glow)',
+      }} className={ok ? '' : 'cp-pulse'} />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.14em', color: 'var(--cp-text-dim)' }}>{label}</span>
     </div>
   );
 }
@@ -233,26 +254,51 @@ export default function DashboardPage() {
 
       {/* ヘッダー */}
       <header
-        style={{ borderBottom: '1px solid var(--cp-border)', background: 'var(--cp-panel)', minHeight: 44 }}
-        className="flex items-center px-3 py-2 shrink-0 gap-3"
+        style={{
+          borderBottom: '2px solid var(--cp-red)',
+          background: 'linear-gradient(180deg, #0c0008 0%, var(--cp-panel) 100%)',
+          minHeight: 48,
+          boxShadow: '0 2px 20px var(--cp-red-dim)',
+          position: 'relative',
+        }}
+        className="flex items-center px-3 py-1 shrink-0 gap-3"
       >
+        {/* 上端ライン装飾 */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+          background: 'linear-gradient(90deg, var(--cp-red), var(--cp-magenta), transparent)',
+        }} />
+
         {/* タイトル（左） */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span style={{ color: 'var(--cp-red)', fontSize: 16 }}>◆</span>
-          <h1 style={{
-            fontFamily: 'var(--font-orbitron)',
-            color: 'var(--cp-text)',
-            fontSize: isMobile ? 9 : 10,
-            letterSpacing: '0.12em',
-            whiteSpace: 'nowrap',
-          }}>
-            {isMobile ? 'CRISIS GOV.' : 'CRISIS GOVERNANCE PROTOCOL'}
-          </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* ダイヤモンドマーカー */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <span style={{ color: 'var(--cp-red-bright)', fontSize: 10, textShadow: '0 0 8px var(--cp-red-glow)' }}>◆</span>
+            <span style={{ color: 'var(--cp-red)', fontSize: 6, opacity: 0.5 }}>◆</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <h1 style={{
+              fontFamily: 'var(--font-title)',
+              color: 'var(--cp-text)',
+              fontSize: isMobile ? 10 : 12,
+              letterSpacing: '0.18em',
+              whiteSpace: 'nowrap',
+              lineHeight: 1,
+              textShadow: '0 0 8px rgba(220,230,255,0.2)',
+            }}>
+              {isMobile ? 'CRISIS GOV.' : 'CRISIS GOVERNANCE PROTOCOL'}
+            </h1>
+            {!isMobile && (
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-red)', letterSpacing: '0.2em', opacity: 0.8 }}>
+                統合防災情報システム ◆ INTEGRATED DISASTER INTELLIGENCE
+              </div>
+            )}
+          </div>
         </div>
 
         {/* デスクトップ: ステータスバッジ */}
         {!isMobile && (
-          <div className="flex items-center gap-3 ml-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 12 }}>
             <StatusBadge label="P2P-API"   ok />
             <StatusBadge label="GSI-TILES" ok />
             <StatusBadge label="JMA-NOWC"  ok />
@@ -261,13 +307,13 @@ export default function DashboardPage() {
 
         {/* デスクトップ: 注意書き */}
         {!isMobile && (
-          <span className="ml-auto cp-label" style={{ fontSize: 9 }}>
-            本アプリの情報は参考値です。公式発表・自治体指示を最優先にしてください。
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cp-text-dim)', letterSpacing: '0.06em' }}>
+            ⚠ 本情報は参考値。公式発表・自治体指示を最優先に。
           </span>
         )}
 
         {/* 時計（右寄せ） */}
-        <div className={isMobile ? 'ml-auto' : ''}>
+        <div style={{ marginLeft: isMobile ? 'auto' : 16 }}>
           <Clock />
         </div>
 
@@ -278,9 +324,9 @@ export default function DashboardPage() {
             style={{
               marginLeft: 8,
               padding: '6px 8px',
-              background: menuOpen ? 'rgba(0,229,255,0.1)' : 'transparent',
-              border: `1px solid ${menuOpen ? 'var(--cp-cyan)' : 'var(--cp-border)'}`,
-              color: menuOpen ? 'var(--cp-cyan)' : 'var(--cp-text)',
+              background: menuOpen ? 'rgba(232,16,42,0.15)' : 'transparent',
+              border: `1px solid ${menuOpen ? 'var(--cp-red-bright)' : 'var(--cp-border)'}`,
+              color: menuOpen ? 'var(--cp-red-bright)' : 'var(--cp-text)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -288,6 +334,7 @@ export default function DashboardPage() {
               minWidth: 36,
               minHeight: 32,
               flexShrink: 0,
+              boxShadow: menuOpen ? '0 0 8px var(--cp-red-glow)' : 'none',
             }}
           >
             <HamburgerIcon open={menuOpen} />

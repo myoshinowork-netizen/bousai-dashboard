@@ -65,25 +65,51 @@ function EventItem({ event }: { event: DisasterEvent }) {
   return (
     <button
       onClick={handleClick}
-      style={{ borderLeftColor: color, background: isSelected ? `rgba(0,229,255,0.05)` : 'transparent' }}
-      className="w-full text-left border-l-2 pl-3 py-2 mb-1 transition-colors hover:bg-white/5"
+      style={{
+        borderLeft: `2px solid ${isSelected ? 'var(--cp-cyan)' : color}`,
+        background: isSelected ? 'rgba(0,229,255,0.06)' : 'rgba(255,255,255,0.015)',
+        padding: '7px 8px 7px 10px',
+        marginBottom: 3,
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        cursor: 'pointer',
+        transition: 'background 0.15s, border-color 0.15s',
+        boxShadow: isSelected ? '0 0 10px rgba(0,229,255,0.15)' : 'none',
+      }}
     >
-      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-        <span style={{ color, fontSize: 9 }} className="tracking-widest font-bold">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', color, fontSize: 8,
+          letterSpacing: '0.14em', fontWeight: 700,
+          textShadow: `0 0 6px ${color}80`,
+        }}>
           {SEV_LABEL[event.severity]}
         </span>
         {badge && (
-          <span style={{ background: `rgba(${badge.rgb},0.15)`, color: `rgb(${badge.rgb})`, fontSize: 8, padding: '1px 4px', letterSpacing: '0.1em' }}>
+          <span style={{
+            background: `rgba(${badge.rgb},0.15)`, color: `rgb(${badge.rgb})`,
+            fontFamily: 'var(--font-mono)', fontSize: 7, padding: '1px 4px', letterSpacing: '0.1em',
+          }}>
             {badge.label}
           </span>
         )}
-        <span className="cp-label">{formatTime(event.occurredAt)}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-text-dim)', letterSpacing: '0.08em', marginLeft: 'auto' }}>
+          {formatTime(event.occurredAt)}
+        </span>
       </div>
-      <div style={{ color: isSelected ? 'var(--cp-cyan)' : 'var(--cp-text)' }} className="text-xs tracking-wide">
+      <div style={{
+        fontFamily: 'var(--font-ui)', fontWeight: 500,
+        color: isSelected ? 'var(--cp-cyan)' : 'var(--cp-text)',
+        fontSize: 11, letterSpacing: '0.04em', lineHeight: 1.3,
+      }}>
         {event.title}
       </div>
       {event.area && (
-        <div className="cp-label mt-0.5 truncate">
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-text-dim)',
+          letterSpacing: '0.08em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {event.area.slice(0, 3).join(' · ')}
         </div>
       )}
@@ -114,17 +140,31 @@ export function EventFeed() {
 
   return (
     <div className="h-full overflow-y-auto p-3">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="cp-title">災害情報</span>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10,
+        paddingBottom: 8, borderBottom: '1px solid var(--cp-border)',
+      }}>
+        <span style={{ color: 'var(--cp-red-bright)', fontSize: 8 }}>◈</span>
+        <span style={{
+          fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 10,
+          letterSpacing: '0.22em', color: 'var(--cp-amber)', textTransform: 'uppercase',
+        }}>災害情報</span>
         {isHistorical ? (
-          <span style={{ color: 'var(--cp-yellow)', fontSize: 9, letterSpacing: '0.12em' }} className="ml-auto border border-current px-1">
+          <span style={{
+            marginLeft: 'auto', color: 'var(--cp-amber)', fontFamily: 'var(--font-mono)',
+            fontSize: 8, letterSpacing: '0.14em', border: '1px solid var(--cp-amber)',
+            padding: '1px 5px',
+          }}>
             HIST
           </span>
         ) : (
-          <>
-            <span style={{ background: 'var(--cp-red)', width: 6, height: 6 }} className="rounded-full cp-pulse ml-auto" />
-            <span className="cp-label">LIVE</span>
-          </>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{
+              background: 'var(--cp-red-bright)', width: 5, height: 5, borderRadius: '50%',
+              boxShadow: '0 0 6px var(--cp-red-glow)',
+            }} className="cp-pulse" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.16em', color: 'var(--cp-red)' }}>LIVE</span>
+          </div>
         )}
       </div>
 

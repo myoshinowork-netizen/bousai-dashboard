@@ -194,7 +194,7 @@ export function NewsTicker({ onOpenModal }: { onOpenModal: () => void }) {
           height: '100%',
           display: 'flex',
           alignItems: 'center',
-          fontFamily: 'var(--font-geist-mono, monospace)',
+          fontFamily: 'var(--font-mono)',
           whiteSpace: 'nowrap',
           zIndex: 2,
         }}
@@ -263,7 +263,7 @@ export function NewsTicker({ onOpenModal }: { onOpenModal: () => void }) {
           padding: '0 10px',
           height: '100%',
           cursor: 'pointer',
-          fontFamily: 'var(--font-geist-mono, monospace)',
+          fontFamily: 'var(--font-mono)',
           whiteSpace: 'nowrap',
           zIndex: 2,
         }}

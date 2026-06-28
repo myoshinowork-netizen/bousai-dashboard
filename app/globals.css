@@ -1,174 +1,346 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════
+   CRISIS GOVERNANCE PROTOCOL — CYBERPUNK DESIGN SYSTEM
+   ══════════════════════════════════════════════════ */
+
 :root {
-  --cp-red:       #ff1744;
-  --cp-red-dim:   rgba(255, 23, 68, 0.25);
-  --cp-red-glow:  rgba(255, 23, 68, 0.5);
-  --cp-cyan:      #00e5ff;
-  --cp-cyan-dim:  rgba(0, 229, 255, 0.2);
-  --cp-yellow:    #ffd600;
-  --cp-orange:    #ff6d00;
-  --cp-bg:        #05050a;
-  --cp-panel:     #0b0b16;
-  --cp-panel2:    #0f0f1e;
-  --cp-border:    rgba(255, 23, 68, 0.35);
-  --cp-border2:   rgba(0, 229, 255, 0.3);
-  --cp-text:      #d0d0e8;
-  --cp-muted:     #44445a;
+  /* ── Core palette ── */
+  --cp-bg:          #000005;
+  --cp-bg2:         #04040e;
+  --cp-panel:       #07071a;
+  --cp-panel2:      #0b0b22;
+
+  /* ── Accent: Red (primary alert / danger) ── */
+  --cp-red:         #e8102a;
+  --cp-red-bright:  #ff1a38;
+  --cp-red-dim:     rgba(232, 16, 42, 0.22);
+  --cp-red-glow:    rgba(232, 16, 42, 0.55);
+
+  /* ── Accent: Cyan (data / info) ── */
+  --cp-cyan:        #00e5ff;
+  --cp-cyan-dim:    rgba(0, 229, 255, 0.18);
+  --cp-cyan-glow:   rgba(0, 229, 255, 0.45);
+
+  /* ── Accent: Magenta (secondary / special) ── */
+  --cp-magenta:     #ff2d78;
+  --cp-magenta-dim: rgba(255, 45, 120, 0.18);
+
+  /* ── Accent: Amber (section labels / warnings) ── */
+  --cp-amber:       #ffaa00;
+  --cp-amber-dim:   rgba(255, 170, 0, 0.18);
+
+  /* ── Accent: Green (positive / safe) ── */
+  --cp-green:       #00ff88;
+
+  /* ── Orange (moderate warning) ── */
+  --cp-orange:      #ff6600;
+
+  /* ── Text ── */
+  --cp-text:        #dde6f5;
+  --cp-text-dim:    #8898b8;
+  --cp-muted:       #3a4a6a;
+
+  /* ── Borders ── */
+  --cp-border:      rgba(232, 16, 42, 0.4);
+  --cp-border2:     rgba(0, 229, 255, 0.35);
+  --cp-border-dim:  rgba(255, 255, 255, 0.06);
+
+  /* ── Fonts ── */
+  --font-display:   var(--font-bebas), 'Impact', sans-serif;
+  --font-ui:        var(--font-rajdhani), var(--font-exo2), 'Arial', sans-serif;
+  --font-mono:      var(--font-share-tech), var(--font-geist-mono), 'Courier New', monospace;
+  --font-title:     var(--font-orbitron), sans-serif;
 }
 
+/* ── Reset ── */
 * { box-sizing: border-box; }
-
 html, body { height: 100%; margin: 0; }
 
 body {
   background: var(--cp-bg);
   color: var(--cp-text);
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* スキャンライン オーバーレイ */
+/* ══════════════════════════════════════════════════
+   SCANLINE + NOISE OVERLAY
+   ══════════════════════════════════════════════════ */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 3px,
-    rgba(0,0,0,0.08) 3px,
-    rgba(0,0,0,0.08) 4px
-  );
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.10) 2px,
+      rgba(0, 0, 0, 0.10) 3px
+    );
   pointer-events: none;
   z-index: 9999;
 }
 
-/* CP パネル共通スタイル */
+/* ══════════════════════════════════════════════════
+   TYPOGRAPHY
+   ══════════════════════════════════════════════════ */
+
+/* Big display numbers (clock, major values) */
+.cp-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* Section header label (NETWORK, SYSTEM style) */
+.cp-section {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cp-amber);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cp-section::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background: var(--cp-red);
+  flex-shrink: 0;
+}
+
+/* Data label */
+.cp-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cp-text-dim);
+}
+
+/* Monospace data value */
+.cp-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--cp-cyan);
+}
+
+/* Title / logo font */
+.cp-title {
+  font-family: var(--font-title);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cp-cyan);
+}
+
+/* ══════════════════════════════════════════════════
+   PANELS
+   ══════════════════════════════════════════════════ */
+
+/* Base panel — angular clip + red border */
 .cp-panel {
   position: relative;
   background: var(--cp-panel);
   border: 1px solid var(--cp-border);
 }
+
+/* Corner bracket decorations */
 .cp-panel::before,
 .cp-panel::after {
   content: '';
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-color: var(--cp-cyan);
   border-style: solid;
   z-index: 1;
+  pointer-events: none;
 }
-.cp-panel::before { top: -1px; left: -1px;   border-width: 2px 0 0 2px; }
+.cp-panel::before { top: -1px;    left: -1px;  border-width: 2px 0 0 2px; }
 .cp-panel::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
-/* CP ラベル */
-.cp-label {
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--cp-muted);
+/* Glow panel variant */
+.cp-panel-glow {
+  box-shadow: 0 0 16px var(--cp-red-dim), inset 0 0 12px rgba(232,16,42,0.04);
 }
 
-/* CP タイトル */
-.cp-title {
-  font-size: 11px;
-  letter-spacing: 0.12em;
+/* ══════════════════════════════════════════════════
+   BUTTONS (neon outline style — Image 3)
+   ══════════════════════════════════════════════════ */
+.cp-btn {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--cp-cyan);
+  background: transparent;
+  border: 1px solid var(--cp-cyan);
+  padding: 5px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s, box-shadow 0.15s, color 0.15s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+.cp-btn:hover {
+  background: var(--cp-cyan-dim);
+  box-shadow: 0 0 12px var(--cp-cyan-glow);
+  color: #fff;
 }
 
-/* アラートパルス */
-@keyframes cp-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+.cp-btn-red {
+  color: var(--cp-red-bright);
+  border-color: var(--cp-red-bright);
 }
-.cp-pulse { animation: cp-pulse 1s ease-in-out infinite; }
-
-/* アラートフラッシュ */
-@keyframes cp-flash {
-  0%, 100% { background: rgba(255,23,68,0.15); }
-  50%       { background: rgba(255,23,68,0.35); }
+.cp-btn-red:hover {
+  background: var(--cp-red-dim);
+  box-shadow: 0 0 12px var(--cp-red-glow);
 }
-.cp-flash { animation: cp-flash 0.8s ease-in-out infinite; }
 
-/* スクロールバー */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--cp-bg); }
-::-webkit-scrollbar-thumb { background: var(--cp-red-dim); border-radius: 2px; }
+/* ══════════════════════════════════════════════════
+   PROGRESS BARS (Image 1 / Image 3 style)
+   ══════════════════════════════════════════════════ */
+.cp-progress {
+  height: 3px;
+  background: var(--cp-muted);
+  position: relative;
+  overflow: hidden;
+}
+.cp-progress-fill {
+  position: absolute;
+  top: 0; left: 0; height: 100%;
+  background: var(--cp-cyan);
+  box-shadow: 0 0 6px var(--cp-cyan-glow);
+  transition: width 0.4s ease;
+}
+.cp-progress-fill.red   { background: var(--cp-red-bright); box-shadow: 0 0 6px var(--cp-red-glow); }
+.cp-progress-fill.amber { background: var(--cp-amber);      box-shadow: 0 0 6px rgba(255,170,0,0.5); }
 
-/* ──────────────────────────────────────
-   モバイル最適化
-   ────────────────────────────────────── */
-
-/* モバイル時パネルのフォントスケール */
-[data-mobile='true'] { zoom: 1.25; }
-
-/* タップ領域の最小サイズ保証 */
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
+/* ══════════════════════════════════════════════════
+   DIVIDERS — chevron style (Image 2 >>> decoration)
+   ══════════════════════════════════════════════════ */
+.cp-divider {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 3px 0;
+  color: var(--cp-red-dim);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+.cp-divider::before, .cp-divider::after {
+  content: ''; flex: 1;
+  height: 1px;
+  background: var(--cp-border);
 }
 
-/* iOS safe area 対応 */
+/* ══════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════ */
+@keyframes cp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+@keyframes cp-pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes cp-flash {
+  0%, 100% { background: rgba(232,16,42,0.12); }
+  50%       { background: rgba(232,16,42,0.32); }
+}
+@keyframes cp-glow-red {
+  0%, 100% { box-shadow: 0 0 8px var(--cp-red-glow); }
+  50%       { box-shadow: 0 0 20px var(--cp-red-glow), 0 0 40px var(--cp-red-dim); }
+}
+@keyframes cp-glow-cyan {
+  0%, 100% { box-shadow: 0 0 6px var(--cp-cyan-glow); }
+  50%       { box-shadow: 0 0 18px var(--cp-cyan-glow), 0 0 32px var(--cp-cyan-dim); }
+}
+@keyframes cp-scan {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100vh); }
+}
+
+.cp-pulse         { animation: cp-pulse 1.2s ease-in-out infinite; }
+.cp-flash         { animation: cp-flash 0.9s ease-in-out infinite; }
+.cp-glow-red      { animation: cp-glow-red 2s ease-in-out infinite; }
+.cp-glow-cyan     { animation: cp-glow-cyan 2s ease-in-out infinite; }
+
+/* ══════════════════════════════════════════════════
+   SCROLLBAR
+   ══════════════════════════════════════════════════ */
+::-webkit-scrollbar       { width: 3px; }
+::-webkit-scrollbar-track { background: var(--cp-bg2); }
+::-webkit-scrollbar-thumb { background: var(--cp-red); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--cp-red-bright); }
+
+/* ══════════════════════════════════════════════════
+   MOBILE
+   ══════════════════════════════════════════════════ */
+[data-mobile='true'] { zoom: 1.25; }
+
+.touch-target {
+  min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
 
-/* モバイル用フォントスケール */
 @media (max-width: 1023px) {
-  .cp-label  { font-size: 11px; }
-  .cp-title  { font-size: 12px; }
-
-  /* MapLibre コントロールをタッチしやすく */
+  .cp-label { font-size: 11px; }
+  .cp-title { font-size: 12px; }
   .maplibregl-ctrl-group button {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 16px !important;
+    width: 36px !important; height: 36px !important; font-size: 16px !important;
   }
-
-  /* スクロールバー非表示（モバイルはネイティブ） */
   ::-webkit-scrollbar { display: none; }
-
-  /* 地図帰属テキストをさらに小さく */
   .maplibregl-ctrl-attrib { font-size: 8px !important; }
 }
 
-/* スライダーのタッチ領域を広げる */
-input[type='range'] {
-  -webkit-appearance: none;
-  height: 20px;
-}
+/* ══════════════════════════════════════════════════
+   RANGE INPUT (Timeline)
+   ══════════════════════════════════════════════════ */
+input[type='range'] { -webkit-appearance: none; height: 20px; }
 input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  -webkit-appearance: none; width: 20px; height: 20px;
 }
 
-/* MapLibre ポップアップ */
+/* ══════════════════════════════════════════════════
+   MAPLIBRE OVERRIDES
+   ══════════════════════════════════════════════════ */
 .maplibregl-popup-content {
   background: var(--cp-panel2) !important;
   color: var(--cp-text) !important;
-  border: 1px solid var(--cp-border) !important;
-  border-radius: 2px !important;
-  font-family: 'Share Tech Mono', monospace !important;
-  font-size: 12px !important;
+  border: 1px solid var(--cp-border2) !important;
+  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
   padding: 8px 12px !important;
+  box-shadow: 0 0 16px var(--cp-cyan-dim) !important;
 }
 .maplibregl-popup-tip { display: none !important; }
 .maplibregl-ctrl-group {
   background: var(--cp-panel) !important;
   border: 1px solid var(--cp-border) !important;
-  border-radius: 2px !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 8px var(--cp-red-dim) !important;
 }
 .maplibregl-ctrl button {
   background: transparent !important;
   color: var(--cp-cyan) !important;
 }
 .maplibregl-ctrl-attrib {
-  background: rgba(5,5,10,0.8) !important;
+  background: rgba(0,0,5,0.85) !important;
   color: var(--cp-muted) !important;
   font-size: 9px !important;
+  font-family: var(--font-mono) !important;
 }

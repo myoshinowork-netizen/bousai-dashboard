@@ -26,26 +26,21 @@ function darkify(layer: AnyLayer): AnyLayer {
   const id = layer.id.toLowerCase();
 
   if (layer.type === 'background') {
-    return { ...layer, paint: { ...layer.paint, 'background-color': '#05050a' } };
+    return { ...layer, paint: { ...layer.paint, 'background-color': '#000005' } };
   }
   if (layer.type === 'fill') {
-    return {
-      ...layer,
-      paint: {
-        ...layer.paint,
-        'fill-color': isWaterLayer(id) ? '#0a1428' : '#0d0d18',
-        'fill-opacity': 1,
-      },
-    };
+    // 水域: 深い紺青、陸地: ほぼ黒
+    if (isWaterLayer(id)) {
+      return { ...layer, paint: { ...layer.paint, 'fill-color': '#060e24', 'fill-opacity': 1 } };
+    }
+    return { ...layer, paint: { ...layer.paint, 'fill-color': '#08091a', 'fill-opacity': 1 } };
   }
   if (layer.type === 'line') {
-    return {
-      ...layer,
-      paint: {
-        ...layer.paint,
-        'line-color': isRoadLayer(id) ? '#1a2235' : '#0f0f1e',
-      },
-    };
+    if (isRoadLayer(id)) {
+      // 幹線: 薄いシアン系、細道: ほぼ不可視
+      return { ...layer, paint: { ...layer.paint, 'line-color': '#111830', 'line-opacity': 0.9 } };
+    }
+    return { ...layer, paint: { ...layer.paint, 'line-color': '#0c0d20', 'line-opacity': 0.7 } };
   }
   if (layer.type === 'symbol') {
     return {
@@ -53,12 +48,13 @@ function darkify(layer: AnyLayer): AnyLayer {
       layout: {
         ...layer.layout,
         'text-font': remapFont((layer.layout as Record<string, unknown>)?.['text-font']),
+        'text-letter-spacing': 0.05,
       },
       paint: {
         ...layer.paint,
-        'text-color': '#e8eaff',
-        'text-halo-color': '#05050a',
-        'text-halo-width': 1.5,
+        'text-color': '#7ab0e0',      // サイバー寒色系の地名
+        'text-halo-color': '#000005',
+        'text-halo-width': 1.8,
       },
     };
   }

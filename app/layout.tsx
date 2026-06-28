@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Orbitron, Share_Tech_Mono } from "next/font/google";
+import { Orbitron, Share_Tech_Mono, Bebas_Neue, Exo_2, Rajdhani } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 
@@ -13,6 +13,24 @@ const shareTechMono = Share_Tech_Mono({
   variable: "--font-share-tech",
   subsets: ["latin"],
   weight: "400",
+});
+
+const bebasNeue = Bebas_Neue({
+  variable: "--font-bebas",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const exo2 = Exo_2({
+  variable: "--font-exo2",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const rajdhani = Rajdhani({
+  variable: "--font-rajdhani",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -51,7 +69,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`${orbitron.variable} ${shareTechMono.variable} h-full`}>
+    <html lang="ja" className={`${orbitron.variable} ${shareTechMono.variable} ${bebasNeue.variable} ${exo2.variable} ${rajdhani.variable} h-full`}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>

@@ -85,8 +85,8 @@ function CategorySection({ cat, open, onToggleOpen }: {
         onClick={onToggleOpen}
         className="w-full flex items-center gap-2 py-1 px-1 hover:bg-white/5 transition-colors"
       >
-        <span style={{ color: cat.color, fontSize: 10 }}>{cat.icon}</span>
-        <span style={{ color: cat.color, fontSize: 9, letterSpacing: '0.14em' }} className="uppercase">
+        <span style={{ color: cat.color, fontSize: 10, textShadow: `0 0 6px ${cat.color}80` }}>{cat.icon}</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 600, color: cat.color, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
           {cat.label}
         </span>
         {anyActive && (
@@ -145,7 +145,10 @@ export function LayerControl() {
 
   return (
     <div className="cp-panel p-2">
-      <span className="cp-label text-[9px] tracking-widest block mb-2">LAYERS</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--cp-border)' }}>
+        <span style={{ color: 'var(--cp-red-bright)', fontSize: 8 }}>◈</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 10, letterSpacing: '0.22em', color: 'var(--cp-amber)', textTransform: 'uppercase' }}>地図レイヤー</span>
+      </div>
       {CATEGORIES.map((cat) => (
         <CategorySection
           key={cat.id}

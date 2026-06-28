@@ -372,7 +372,7 @@ function LevelBadge({ level }: { level: DangerLevel }) {
         fontSize: 7,
         letterSpacing: '0.14em',
         padding: '1px 5px',
-        fontFamily: 'var(--font-geist-mono, monospace)',
+        fontFamily: 'var(--font-mono)',
         flexShrink: 0,
       }}
     >
@@ -665,21 +665,35 @@ export function SituationPanel({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 8,
           width: '100%',
-          background: 'rgba(6,8,18,0.92)',
-          border: `1px solid ${maxMeta.color}`,
+          background: `linear-gradient(135deg, rgba(6,8,18,0.97) 0%, ${maxMeta.bg} 100%)`,
+          borderTop: `2px solid ${maxMeta.color}`,
+          borderLeft: `2px solid ${maxMeta.color}`,
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: 'none',
           color: maxMeta.color,
-          fontSize: 8,
-          letterSpacing: '0.2em',
-          padding: '4px 8px',
+          padding: '6px 8px',
           cursor: 'pointer',
-          fontFamily: 'var(--font-geist-mono, monospace)',
           backdropFilter: 'blur(8px)',
+          boxShadow: `0 0 12px ${maxMeta.color}40`,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <span style={{ fontSize: 7, opacity: 0.7 }}>◉</span>
-        <span>状況レポート</span>
+        {/* 背景グロー */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+          background: `linear-gradient(90deg, ${maxMeta.color}, transparent)`,
+          opacity: 0.6,
+        }} />
+        {/* セクションラベル */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <span style={{ color: maxMeta.color, fontSize: 9, textShadow: `0 0 6px ${maxMeta.color}` }}>◈</span>
+          <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 9, letterSpacing: '0.22em', color: 'var(--cp-amber)' }}>
+            状況レポート
+          </span>
+        </div>
         <div
           style={{
             marginLeft: 'auto',
@@ -696,20 +710,22 @@ export function SituationPanel({
               background: displayEvacMeta.bg,
               color: displayEvacMeta.color,
               border: `1px solid ${displayEvacMeta.border}`,
+              fontFamily: 'var(--font-mono)',
               fontSize: 7,
-              padding: '1px 5px',
-              letterSpacing: '0.08em',
+              padding: '1px 6px',
+              letterSpacing: '0.1em',
               fontWeight: 700,
               whiteSpace: 'nowrap',
+              textShadow: `0 0 6px ${displayEvacMeta.color}80`,
             }}
           >
             避難LV.{displayReport.evacLevel} {displayEvacMeta.sublabel}
           </span>
-          <span style={{ color: 'var(--cp-muted)', fontSize: 6, letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--cp-text-dim)', fontSize: 6, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>
             {displayReport.title}
           </span>
         </div>
-        <span style={{ fontSize: 7, opacity: 0.6 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cp-text-dim)', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </button>
 
       {/* パネル本体 */}

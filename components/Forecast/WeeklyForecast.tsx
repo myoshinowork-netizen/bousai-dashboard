@@ -246,7 +246,10 @@ export function WeeklyForecast() {
           flexShrink: 0,
         }}
       >
-        <span style={{ color: 'var(--cp-cyan)', fontSize: 9, letterSpacing: '0.18em' }}>WEATHER FCST</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: 'var(--cp-red-bright)', fontSize: 8 }}>◈</span>
+          <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 10, letterSpacing: '0.22em', color: 'var(--cp-amber)', textTransform: 'uppercase' }}>天気予報</span>
+        </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
           {/* 現在地から最寄りエリアを自動選択 */}
