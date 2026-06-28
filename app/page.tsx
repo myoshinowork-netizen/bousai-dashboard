@@ -260,6 +260,7 @@ export default function DashboardPage() {
           minHeight: 48,
           boxShadow: '0 2px 20px var(--cp-red-dim)',
           position: 'relative',
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)',
         }}
         className="flex items-center px-3 py-1 shrink-0 gap-3"
       >
