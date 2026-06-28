@@ -629,10 +629,12 @@ export function SituationPanel({
       setBadgeFade(false);
       setTimeout(() => {
         setDisplayIdx((i) => (i + 1) % reports.length);
+      }, 380); // CSS transition は 0.3s → 完全に消えてから切り替え
+      setTimeout(() => {
         setBadgeFade(true);
-      }, 300);
+      }, 420);
     };
-    const id = setInterval(cycle, 3500);
+    const id = setInterval(cycle, 4000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedReport, reports.length]);

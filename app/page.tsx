@@ -12,6 +12,8 @@ import { useQuakePoller }   from '@/lib/useQuakePoller';
 import { useWeatherPoller } from '@/lib/useWeatherPoller';
 import { useEewListener }   from '@/lib/useEewListener';
 import { EewModal }         from '@/components/EewModal/EewModal';
+import { NewsTicker }       from '@/components/NewsTicker/NewsTicker';
+import { NewsModal }        from '@/components/NewsModal/NewsModal';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import { useIsMobile }      from '@/lib/useIsMobile';
 
@@ -214,8 +216,9 @@ export default function DashboardPage() {
   useEewListener();
 
   const isMobile   = useIsMobile();
-  const [menuOpen,     setMenuOpen]     = useState(false);
-  const [mobilePanel,  setMobilePanel]  = useState<MobilePanel>(null);
+  const [menuOpen,       setMenuOpen]       = useState(false);
+  const [mobilePanel,    setMobilePanel]    = useState<MobilePanel>(null);
+  const [newsModalOpen,  setNewsModalOpen]  = useState(false);
 
   // メニューを閉じたとき mobilePanel=null なら地図全画面
   function handleMenuSelect(p: MobilePanel) {
@@ -226,6 +229,7 @@ export default function DashboardPage() {
     <div style={{ background: 'var(--cp-bg)', height: '100svh' }} className="flex flex-col">
       <AlertBanner />
       <EewModal />
+      <NewsModal open={newsModalOpen} onClose={() => setNewsModalOpen(false)} />
 
       {/* ヘッダー */}
       <header
@@ -355,6 +359,8 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          {/* ニューステッカー（地図とタイムラインの間） */}
+          <NewsTicker onOpenModal={() => setNewsModalOpen(true)} />
           <TimelineControl isMobile={isMobile} />
         </main>
 
