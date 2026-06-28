@@ -209,40 +209,38 @@ export function NewsTicker({ onOpenModal }: { onOpenModal: () => void }) {
           overflow: 'hidden',
           position: 'relative',
           height: '100%',
-          maskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%)',
+          maskImage: 'linear-gradient(to right, transparent 0%, black 2%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 2%, black 95%, transparent 100%)',
         }}
       >
+        {/*
+          シームレスループの仕組み:
+          - 内側divにコンテンツを2回並べる（区切り記号付き）
+          - translateX(0) → translateX(-50%) でちょうど1コピー分移動
+          - 2コピー目が1コピー目と同じ位置に来るので継ぎ目なくループ
+        */}
         <div
           key={tickerText}
           style={{
-            display: 'inline-block',
+            display: 'flex',
             whiteSpace: 'nowrap',
             color: 'var(--cp-text)',
             fontSize: 10,
             letterSpacing: '0.03em',
             lineHeight: '28px',
             animation: `ticker-scroll ${duration}s linear infinite`,
-            paddingLeft: '100%',
+            willChange: 'transform',
           }}
         >
-          {/* カラー装飾付きテキスト */}
-          {sentences.map((s, i) => (
-            <span key={i}>
-              <span style={{ color: s.color }}>{s.text}</span>
-              {i < sentences.length - 1 && (
-                <span style={{ color: 'var(--cp-border)', padding: '0 1.5em' }}>◆</span>
-              )}
-            </span>
-          ))}
-          {/* ループ用スペーサー */}
-          <span style={{ paddingRight: '6em' }} />
-          {sentences.map((s, i) => (
-            <span key={`r${i}`}>
-              <span style={{ color: s.color }}>{s.text}</span>
-              {i < sentences.length - 1 && (
-                <span style={{ color: 'var(--cp-border)', padding: '0 1.5em' }}>◆</span>
-              )}
+          {/* コピー1 + コピー2 を並べる */}
+          {[0, 1].map((copyIdx) => (
+            <span key={copyIdx} style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {sentences.map((s, i) => (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <span style={{ color: s.color }}>{s.text}</span>
+                  <span style={{ color: 'rgba(232,16,42,0.4)', padding: '0 2em' }}>◆</span>
+                </span>
+              ))}
             </span>
           ))}
         </div>
@@ -273,7 +271,7 @@ export function NewsTicker({ onOpenModal }: { onOpenModal: () => void }) {
 
       <style>{`
         @keyframes ticker-scroll {
-          from { transform: translateX(0); }
+          from { transform: translateX(0%); }
           to   { transform: translateX(-50%); }
         }
       `}</style>
