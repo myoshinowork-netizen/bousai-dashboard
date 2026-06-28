@@ -14,29 +14,31 @@ export function MapOverlays({ isMobile = false }: { isMobile?: boolean }) {
       style={{
         position: 'absolute',
         top: 8,
-        bottom: isMobile ? 64 : 48,
         left: 8,
         right: 'auto',
         zIndex: 10,
-        width: isMobile ? 'min(230px, 58vw)' : 220,
+        width: isMobile ? 'min(220px, 56vw)' : 220,
         display: 'flex',
         flexDirection: 'column',
-        gap: 6,
+        gap: 4,
         pointerEvents: 'none',
+        maxHeight: isMobile ? 'calc(100svh - 120px)' : 'calc(100vh - 80px)',
       }}
     >
-      {/* SITUATION REPORT: open 時のみ flex-grow してスクロール */}
+      {/* 状況レポート */}
       <div style={{
-        flex: situationOpen ? '1 1 auto' : '0 0 auto',
-        minHeight: 0,
+        flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: isMobile ? '50vh' : undefined,
+        maxHeight: situationOpen
+          ? (isMobile ? '45vh' : '60vh')
+          : undefined,
+        overflow: 'hidden',
       }}>
         <SituationPanel isMobile={isMobile} onOpenChange={setSituationOpen} />
       </div>
 
-      {/* MAP LEGEND: SituationReport 直下にスライド */}
+      {/* 凡例: 状況レポート直下に配置 */}
       <div style={{ flexShrink: 0 }}>
         <MapLegend isMobile={isMobile} />
       </div>

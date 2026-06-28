@@ -115,7 +115,7 @@ export function EventFeed() {
   return (
     <div className="h-full overflow-y-auto p-3">
       <div className="flex items-center gap-2 mb-3">
-        <span className="cp-title">EVENT FEED</span>
+        <span className="cp-title">災害情報</span>
         {isHistorical ? (
           <span style={{ color: 'var(--cp-yellow)', fontSize: 9, letterSpacing: '0.12em' }} className="ml-auto border border-current px-1">
             HIST
@@ -143,7 +143,7 @@ export function EventFeed() {
       )}
 
       <div className="cp-label text-center pt-4 pb-2">
-        {filtered.length} EVENTS{isHistorical ? ' (FILTERED)' : ''}
+        {filtered.length} 件{isHistorical ? '（絞り込み中）' : ''}
       </div>
     </div>
   );

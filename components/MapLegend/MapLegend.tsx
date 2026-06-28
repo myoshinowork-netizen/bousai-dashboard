@@ -282,7 +282,7 @@ export function MapLegend({ isMobile = false }: { isMobile?: boolean }) {
         }}
       >
         <span style={{ fontSize: 7, opacity: 0.6 }}>◈</span>
-        <span>MAP LEGEND</span>
+        <span>凡例</span>
         <span
           style={{
             marginLeft: 'auto',

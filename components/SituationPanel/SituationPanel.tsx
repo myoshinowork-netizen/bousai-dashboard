@@ -122,7 +122,7 @@ function buildEarthquakeReport(events: DisasterEvent[]): SituationReport | null 
     title: '地震活動',
     level,
     evacLevel,
-    status: `直近 ${recentCount} 件 ／ 最大 ${worst.title.match(/M[\d.]+/)?.[0] ?? '不明'}`,
+    status: `直近1h ${recentCount}件 ／ ${worst.area?.[0] ?? worst.title.slice(0, 12)} ${worst.title.match(/M[\d.]+/)?.[0] ?? ''}`,
     detail:
       level >= 4 ? '強い揺れが観測されています。津波の可能性を確認し、すべての方が速やかに安全な場所へ避難してください。'
       : level === 3 ? '有感地震が発生しています。高齢者・障害者など要配慮者は避難を開始してください。'
@@ -628,7 +628,7 @@ export function SituationPanel({
         }}
       >
         <span style={{ fontSize: 7, opacity: 0.7 }}>◉</span>
-        <span>SITUATION REPORT</span>
+        <span>状況レポート</span>
         <div
           style={{
             marginLeft: 'auto',

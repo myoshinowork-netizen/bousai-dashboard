@@ -69,9 +69,9 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
 type MobilePanel = 'events' | 'layers' | 'forecast' | null;
 
 const MENU_ITEMS: { id: MobilePanel; icon: string; label: string; labelEn: string }[] = [
-  { id: 'events',   icon: '◈', label: 'イベント',  labelEn: 'EVENT FEED'    },
-  { id: 'layers',   icon: '◇', label: 'レイヤー',  labelEn: 'LAYER CONTROL' },
-  { id: 'forecast', icon: '☁', label: '天気予報',  labelEn: 'WEATHER FCST'  },
+  { id: 'events',   icon: '◈', label: '災害情報',  labelEn: '災害情報'    },
+  { id: 'layers',   icon: '◇', label: '地図表示',  labelEn: '地図表示' },
+  { id: 'forecast', icon: '☁', label: '天気予報',  labelEn: '天気予報'  },
 ];
 
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -309,6 +309,51 @@ export default function DashboardPage() {
           <div className="flex-1 relative overflow-hidden">
             <DisasterMap />
             <MapOverlays isMobile={isMobile} />
+
+            {/* モバイル: 右側クイックアクセスボタン */}
+            {isMobile && (
+              <div style={{
+                position: 'absolute',
+                right: 8,
+                bottom: 16,
+                zIndex: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                pointerEvents: 'auto',
+              }}>
+                {MENU_ITEMS.map((item) => {
+                  const isActive = mobilePanel === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setMobilePanel(isActive ? null : item.id); setMenuOpen(false); }}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        background: isActive ? 'rgba(0,229,255,0.2)' : 'rgba(6,8,18,0.88)',
+                        border: `1.5px solid ${isActive ? 'var(--cp-cyan)' : 'var(--cp-border)'}`,
+                        color: isActive ? 'var(--cp-cyan)' : 'var(--cp-muted)',
+                        fontSize: 18,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: isActive ? '0 0 12px rgba(0,229,255,0.3)' : '0 2px 8px rgba(0,0,0,0.5)',
+                        gap: 1,
+                      }}
+                      title={item.label}
+                    >
+                      <span style={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</span>
+                      <span style={{ fontSize: 7, letterSpacing: '0.05em', lineHeight: 1 }}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <TimelineControl isMobile={isMobile} />
         </main>
