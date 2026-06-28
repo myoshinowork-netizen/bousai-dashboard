@@ -65,15 +65,36 @@ async function fetchNhkWeatherRss(): Promise<NewsItem[]> {
   }
 }
 
+// アプリ対象コンテンツのキーワード
+const RELEVANT_KEYWORDS = [
+  '地震', '震度', 'マグニチュード', '津波', '余震',
+  '台風', '熱帯低気圧', '暴風', '強風',
+  '大雨', '豪雨', '線状降水帯', '集中豪雨', '洪水', '浸水', '冠水', '氾濫',
+  '土砂', '崖崩れ', '土石流', '地すべり',
+  '雷', '竜巻', '突風',
+  '警報', '注意報', '特別警報', '緊急',
+  '避難', '避難指示', '避難勧告', '避難準備',
+  '災害', '防災', '減災',
+  '高潮', '波浪', '強雨', '記録的',
+  '気象', '天気', '梅雨', '前線',
+];
+
+function isRelevant(item: NewsItem): boolean {
+  const text = `${item.title} ${item.description}`;
+  return RELEVANT_KEYWORDS.some((kw) => text.includes(kw));
+}
+
 export async function GET() {
   const [disaster, weather] = await Promise.all([fetchNhkRss(), fetchNhkWeatherRss()]);
 
-  // pubDate でソートして返す
-  const all = [...disaster, ...weather].sort((a, b) => {
-    const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-    const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-    return db - da;
-  });
+  // 関連キーワードでフィルタ → pubDate でソート
+  const all = [...disaster, ...weather]
+    .filter(isRelevant)
+    .sort((a, b) => {
+      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return db - da;
+    });
 
   return NextResponse.json({ items: all }, {
     headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
