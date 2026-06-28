@@ -668,13 +668,11 @@ export function SituationPanel({
           gap: 8,
           width: '100%',
           background: `linear-gradient(135deg, rgba(6,8,18,0.97) 0%, ${maxMeta.bg} 100%)`,
-          border: `1px solid ${maxMeta.color}`,
-          borderBottom: 'none',
+          border: 'none',
           color: maxMeta.color,
           padding: '6px 8px',
           cursor: 'pointer',
           backdropFilter: 'blur(8px)',
-          boxShadow: `0 0 12px ${maxMeta.color}40`,
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -731,8 +729,7 @@ export function SituationPanel({
         <div
           style={{
             background: 'rgba(6,8,18,0.92)',
-            border: `1px solid var(--cp-border)`,
-            borderTop: 'none',
+            borderTop: '1px solid rgba(232,16,42,0.2)',
             backdropFilter: 'blur(8px)',
             flex: '1 1 auto',
             overflowY: 'auto',

@@ -271,8 +271,7 @@ export function MapLegend({ isMobile = false }: { isMobile?: boolean }) {
           gap: 6,
           width: '100%',
           background: 'rgba(6,8,18,0.92)',
-          border: '1px solid var(--cp-border2)',
-          borderBottom: 'none',
+          border: 'none',
           color: 'var(--cp-cyan)',
           fontSize: 8,
           letterSpacing: '0.2em',
@@ -280,7 +279,6 @@ export function MapLegend({ isMobile = false }: { isMobile?: boolean }) {
           cursor: 'pointer',
           fontFamily: 'var(--font-mono)',
           backdropFilter: 'blur(8px)',
-          boxShadow: '0 0 10px rgba(0,229,255,0.15)',
         }}
       >
         <span style={{ fontSize: 7, opacity: 0.6 }}>◈</span>
@@ -305,8 +303,7 @@ export function MapLegend({ isMobile = false }: { isMobile?: boolean }) {
         <div
           style={{
             background: 'rgba(6,8,18,0.92)',
-            border: '1px solid var(--cp-border2)',
-            borderTop: 'none',
+            borderTop: '1px solid rgba(0,229,255,0.15)',
             backdropFilter: 'blur(8px)',
             maxHeight: 260,
             overflowY: 'auto',

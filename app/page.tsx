@@ -36,10 +36,10 @@ function LiveClock() {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
       <span style={{
-        fontFamily: 'var(--font-display)',
+        fontFamily: 'var(--font-title)',
         color: 'var(--cp-red-bright)',
-        fontSize: 22,
-        letterSpacing: '0.06em',
+        fontSize: 20,
+        letterSpacing: '0.08em',
         lineHeight: 1,
         textShadow: '0 0 12px var(--cp-red-glow)',
       }}>

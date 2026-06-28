@@ -20,9 +20,12 @@ export function MapOverlays({ isMobile = false }: { isMobile?: boolean }) {
         width: isMobile ? 'min(220px, 56vw)' : 220,
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
         pointerEvents: 'none',
         maxHeight: isMobile ? 'calc(100svh - 120px)' : 'calc(100vh - 80px)',
+        /* 統合外枠：両パネルをひとつの枠で囲む */
+        border: '1px solid rgba(232,16,42,0.5)',
+        boxShadow: '0 0 16px rgba(232,16,42,0.15)',
+        background: 'transparent',
       }}
     >
       {/* 状況レポート */}
@@ -39,7 +42,7 @@ export function MapOverlays({ isMobile = false }: { isMobile?: boolean }) {
       </div>
 
       {/* 凡例: 状況レポート直下に配置 */}
-      <div style={{ flexShrink: 0 }}>
+      <div style={{ flexShrink: 0, borderTop: '1px solid rgba(232,16,42,0.3)' }}>
         <MapLegend isMobile={isMobile} />
       </div>
     </div>
