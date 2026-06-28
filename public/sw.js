@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cgp-v6';
+const CACHE_NAME = 'cgp-v7';
 
 // キャッシュするアセット（アプリシェル）
 const SHELL_ASSETS = [
