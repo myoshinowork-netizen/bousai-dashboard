@@ -101,6 +101,46 @@ const MENU_ITEMS: { id: MobilePanel; icon: string; label: string; labelEn: strin
   { id: 'forecast', icon: '☁', label: '天気予報',  labelEn: '天気予報'  },
 ];
 
+// 簡易モード切替ボタン（ハンバーガーメニュー内用）
+function SimpleModeMenuItem({ simpleMode, setSimpleMode, onClose }: {
+  simpleMode: boolean;
+  setSimpleMode: (v: boolean) => void;
+  onClose: () => void;
+}) {
+  return (
+    <button
+      onClick={() => { requestAnimationFrame(() => setSimpleMode(!simpleMode)); onClose(); }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        padding: '14px 16px',
+        gap: 12,
+        background: simpleMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,229,255,0.07)',
+        borderBottom: '1px solid rgba(255,23,68,0.12)',
+        borderLeft: simpleMode ? '2px solid rgba(255,255,255,0.5)' : '2px solid var(--cp-cyan)',
+        cursor: 'pointer',
+        textAlign: 'left',
+      }}
+    >
+      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>
+        {simpleMode ? '🔬' : '👁'}
+      </span>
+      <div>
+        <div style={{ color: simpleMode ? '#fff' : 'var(--cp-cyan)', fontSize: 13, letterSpacing: '0.05em' }}>
+          {simpleMode ? '詳細モードに戻す' : '簡易表示モード'}
+        </div>
+        <div style={{ color: 'var(--cp-muted)', fontSize: 8, letterSpacing: '0.15em', marginTop: 2 }}>
+          {simpleMode ? 'DETAIL MODE' : 'SIMPLE MODE'}
+        </div>
+      </div>
+      <span style={{ marginLeft: 'auto', color: simpleMode ? '#fff' : 'var(--cp-cyan)', fontSize: 8, letterSpacing: '0.1em', opacity: 0.7 }}>
+        {simpleMode ? '● ON' : '○ OFF'}
+      </span>
+    </button>
+  );
+}
+
 function HamburgerIcon({ open }: { open: boolean }) {
   const bar = (y: number, w = '100%') => (
     <div style={{
@@ -124,12 +164,14 @@ function HamburgerIcon({ open }: { open: boolean }) {
 }
 
 function MobileHamburgerMenu({
-  open, activePanel, onSelect, onClose,
+  open, activePanel, onSelect, onClose, simpleMode, setSimpleMode,
 }: {
   open: boolean;
   activePanel: MobilePanel;
   onSelect: (p: MobilePanel) => void;
   onClose: () => void;
+  simpleMode: boolean;
+  setSimpleMode: (v: boolean) => void;
 }) {
   if (!open) return null;
   return (
@@ -168,6 +210,9 @@ function MobileHamburgerMenu({
           <span style={{ color: 'var(--cp-cyan)', fontSize: 7, letterSpacing: '0.25em' }}>◆◆</span>
           <span style={{ color: 'var(--cp-muted)', fontSize: 8, letterSpacing: '0.2em' }}>SYSTEM MENU</span>
         </div>
+
+        {/* 簡易モード切替 */}
+        <SimpleModeMenuItem simpleMode={simpleMode} setSimpleMode={setSimpleMode} onClose={onClose} />
 
         {MENU_ITEMS.map((item, i) => {
           const isActive = activePanel === item.id;
@@ -330,37 +375,33 @@ export default function DashboardPage() {
           <Clock />
         </div>
 
-        {/* 簡易/詳細モード切替ボタン */}
-        <button
-          onClick={() => requestAnimationFrame(() => setSimpleMode(!simpleMode))}
-          title={simpleMode ? '詳細表示モードに切り替え' : '簡易表示モードに切り替え'}
-          style={{
-            flexShrink: 0,
-            marginLeft: isMobile ? 6 : 10,
-            padding: isMobile ? '5px 8px' : '5px 12px',
-            background: simpleMode
-              ? 'rgba(255,255,255,0.18)'
-              : 'rgba(0,229,255,0.08)',
-            border: simpleMode
-              ? '1.5px solid rgba(255,255,255,0.5)'
-              : '1.5px solid rgba(0,229,255,0.4)',
-            borderRadius: 20,
-            color: simpleMode ? '#fff' : 'var(--cp-cyan)',
-            fontSize: isMobile ? 10 : 11,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            letterSpacing: '0.03em',
-            transition: 'all 0.2s',
-          }}
-        >
-          <span style={{ fontSize: isMobile ? 12 : 13 }}>
-            {simpleMode ? '🔬' : '👁'}
-          </span>
-          {!isMobile && (simpleMode ? '詳細モード' : '簡易モード')}
-        </button>
+        {/* 簡易/詳細モード切替ボタン（デスクトップのみ。モバイルはハンバーガーメニュー内） */}
+        {!isMobile && (
+          <button
+            onClick={() => requestAnimationFrame(() => setSimpleMode(!simpleMode))}
+            title={simpleMode ? '詳細表示モードに切り替え' : '簡易表示モードに切り替え'}
+            style={{
+              flexShrink: 0,
+              marginLeft: 10,
+              padding: '5px 12px',
+              background: simpleMode ? 'rgba(255,255,255,0.18)' : 'rgba(0,229,255,0.08)',
+              border: simpleMode ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(0,229,255,0.4)',
+              borderRadius: 20,
+              color: simpleMode ? '#fff' : 'var(--cp-cyan)',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              letterSpacing: '0.03em',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 13 }}>{simpleMode ? '🔬' : '👁'}</span>
+            {simpleMode ? '詳細モード' : '簡易モード'}
+          </button>
+        )}
 
         {/* モバイル: ハンバーガーボタン */}
         {isMobile && (
@@ -395,6 +436,8 @@ export default function DashboardPage() {
           activePanel={mobilePanel}
           onSelect={handleMenuSelect}
           onClose={() => setMenuOpen(false)}
+          simpleMode={simpleMode}
+          setSimpleMode={setSimpleMode}
         />
       )}
 

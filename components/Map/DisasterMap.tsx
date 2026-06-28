@@ -358,6 +358,7 @@ export const DisasterMap = memo(function DisasterMap() {
   const markersRef        = useRef<maplibregl.Marker[]>([]);
   const tsunamiMarkersRef = useRef<maplibregl.Marker[]>([]);
   const waveRafRef        = useRef<number | null>(null);
+  const waitTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const geoWatchRef       = useRef<number | null>(null);
   const shouldFlyRef      = useRef(false); // ボタン押下時のみtrue→flyTo後false
@@ -604,28 +605,32 @@ export const DisasterMap = memo(function DisasterMap() {
   // 選択イベント → 波・震動圏アニメーション
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map) return;
 
+    // 前回の waitForLayers タイマーと RAF をキャンセル
+    if (waitTimerRef.current) { clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
     if (waveRafRef.current) { cancelAnimationFrame(waveRafRef.current); waveRafRef.current = null; }
 
     const event = selectedEvent;
-    if (!event?.location || event.type !== 'earthquake') {
-      const ids = ['eq-zone-outer','eq-zone-middle','eq-zone-inner','eq-p-wave','eq-s-wave','eq-p-label','eq-s-label'];
-      ids.forEach((id) => (map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(EMPTY_FC));
-      return;
-    }
 
-    const center: [number, number] = [event.location.lng, event.location.lat];
-    map.flyTo({ center, zoom: 7, speed: 1.2 });
+    const run = () => {
+      if (!event?.location || event.type !== 'earthquake') {
+        const ids = ['eq-zone-outer','eq-zone-middle','eq-zone-inner','eq-p-wave','eq-s-wave','eq-p-label','eq-s-label'];
+        ids.forEach((id) => (map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(EMPTY_FC));
+        return;
+      }
 
-    const mag        = parseMagnitude(event.title);
-    const shakeDur   = shakeDurationMs(mag);
-    const occurredMs = new Date(event.occurredAt).getTime();
-    const [rInner, rMiddle, rOuter] = shakingZoneRadii(mag);
-    const shakeColor = SEVERITY_COLOR[event.severity];
+      const center: [number, number] = [event.location.lng, event.location.lat];
+      map.flyTo({ center, zoom: 7, speed: 1.2 });
 
-    const waitForLayers = () => {
-      if (!map.getSource('eq-zone-inner')) { setTimeout(waitForLayers, 200); return; }
+      const mag        = parseMagnitude(event.title);
+      const shakeDur   = shakeDurationMs(mag);
+      const occurredMs = new Date(event.occurredAt).getTime();
+      const [rInner, rMiddle, rOuter] = shakingZoneRadii(mag);
+      const shakeColor = SEVERITY_COLOR[event.severity];
+
+      const waitForLayers = () => {
+        if (!map.getSource('eq-zone-inner')) { waitTimerRef.current = setTimeout(waitForLayers, 200); return; }
 
       (map.getSource('eq-zone-inner')  as maplibregl.GeoJSONSource).setData({ type:'FeatureCollection', features:[geoCircle(center, rInner)] });
       (map.getSource('eq-zone-middle') as maplibregl.GeoJSONSource).setData({ type:'FeatureCollection', features:[geoCircle(center, rMiddle)] });
@@ -720,6 +725,19 @@ export const DisasterMap = memo(function DisasterMap() {
       waveRafRef.current = requestAnimationFrame(animate);
     };
     waitForLayers();
+    };
+
+    // スタイルがまだロード中なら完了を待ってから実行
+    if (map.isStyleLoaded()) {
+      run();
+    } else {
+      map.once('style.load', run);
+    }
+
+    return () => {
+      if (waitTimerRef.current) { clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
+      if (waveRafRef.current) { cancelAnimationFrame(waveRafRef.current); waveRafRef.current = null; }
+    };
   }, [selectedEvent]);
 
   // 現在地マーカー + 精度円
