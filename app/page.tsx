@@ -255,19 +255,24 @@ export default function DashboardPage() {
       <EewModal />
       <NewsModal open={newsModalOpen} onClose={() => setNewsModalOpen(false)} />
 
-      {/* ヘッダー */}
-      <header
-        style={{
-          borderBottom: '2px solid var(--cp-red)',
-          background: 'linear-gradient(180deg, #0c0008 0%, var(--cp-panel) 100%)',
-          minHeight: 48,
-          boxShadow: '0 2px 20px var(--cp-red-dim)',
-          position: 'relative',
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)',
-        }}
-        className="flex items-center px-3 py-1 shrink-0 gap-3"
-      >
-        {/* 上端ライン装飾 */}
+      {/* ヘッダー: セーフエリア + 実ヘッダーの2段構成 */}
+      <header style={{ flexShrink: 0, position: 'relative', background: '#0c0008' }}>
+        {/* ① セーフエリア（ノッチ/ステータスバー分）を黒で埋める */}
+        <div style={{ height: 'env(safe-area-inset-top, 0px)', background: '#0c0008' }} />
+
+        {/* ② 実ヘッダー本体（赤ラインはここから下のみ） */}
+        <div
+          style={{
+            borderTop: '1px solid rgba(232,16,42,0.45)',
+            borderBottom: '2px solid var(--cp-red)',
+            background: 'linear-gradient(180deg, #0c0008 0%, var(--cp-panel) 100%)',
+            minHeight: 48,
+            boxShadow: '0 2px 20px var(--cp-red-dim)',
+            position: 'relative',
+          }}
+          className="flex items-center px-3 py-1 gap-3"
+        >
+        {/* 上端ライン装飾（ノッチ境界線に重ねる） */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 1,
           background: 'linear-gradient(90deg, var(--cp-red), var(--cp-magenta), transparent)',
@@ -344,6 +349,7 @@ export default function DashboardPage() {
             <HamburgerIcon open={menuOpen} />
           </button>
         )}
+        </div>{/* ② 実ヘッダー本体 end */}
       </header>
 
       {/* モバイル: ハンバーガーメニュードロップダウン */}
