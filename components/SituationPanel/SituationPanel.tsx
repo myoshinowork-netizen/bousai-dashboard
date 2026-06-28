@@ -4,17 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useDisasterStore } from '@/store/useDisasterStore';
 import type { DisasterEvent, DisasterEventType, TyphoonInfo, LinearPrecipBand, LandslideWarning } from '@/lib/model';
 
-const EVENT_TYPE_TO_REPORT_ID: Partial<Record<DisasterEventType, string>> = {
-  earthquake:    'earthquake',
-  typhoon:       'typhoon',
-  rain:          'rain',
-  thunder:       'thunder',
-  linear_precip: 'linearPrecip',
-  landslide:     'landslide',
-  flood:         'hazard',
-  tsunami:       'tsunami',
-};
-
 // ────────────────────────────────────────────────
 // 型
 // ────────────────────────────────────────────────
@@ -87,6 +76,67 @@ const EVAC_META: Record<EvacLevel, {
     border: 'rgba(255,23,68,0.7)',
   },
 };
+
+// ────────────────────────────────────────────────
+// 選択イベント専用レポート生成
+// ────────────────────────────────────────────────
+const TYPE_ICON: Partial<Record<DisasterEventType, string>> = {
+  earthquake:    '⚡',
+  typhoon:       '🌀',
+  tsunami:       '🌊',
+  rain:          '🌧',
+  thunder:       '⛈',
+  linear_precip: '⛈',
+  landslide:     '⛰',
+  flood:         '💧',
+};
+
+const TYPE_LABEL: Partial<Record<DisasterEventType, string>> = {
+  earthquake:    '地震情報',
+  typhoon:       '台風情報',
+  tsunami:       '津波情報',
+  rain:          '大雨情報',
+  thunder:       '雷情報',
+  linear_precip: '線状降水帯情報',
+  landslide:     '土砂災害情報',
+  flood:         '洪水情報',
+};
+
+function buildSelectedEventReport(event: DisasterEvent): SituationReport {
+  const level: DangerLevel =
+    event.severity === 'emergency' ? 4
+    : event.severity === 'warning'   ? 3
+    : event.severity === 'advisory'  ? 2
+    : 1;
+  const evacLevel: EvacLevel = level >= 4 ? 4 : level === 3 ? 3 : level === 2 ? 2 : 1;
+  const area = event.area?.slice(0, 2).join('・') ?? '';
+
+  const detail =
+    level >= 4 ? `${event.title}が発生しています。直ちに安全な場所へ避難し、自治体の避難指示に従ってください。`
+    : level === 3 ? `${event.title}が発生しています。要配慮者は避難を開始し、最新情報を収集してください。`
+    : level === 2 ? `${event.title}が発生しています。非常持ち出し品を確認し、避難経路を把握してください。`
+    : `${event.title}が発生しています。引き続き最新情報をご確認ください。`;
+
+  const actions =
+    level >= 4
+      ? ['【全員避難】直ちに安全な場所へ移動', '自治体の避難指示に即座に従う', '危険な場所・建物から離れる', '最新の気象・防災情報を確認']
+      : level === 3
+      ? ['【要配慮者避難開始】高齢者・障害者は先行避難', '避難場所・経路を家族で確認', '最新情報を継続的に収集']
+      : level === 2
+      ? ['【避難準備】非常袋を玄関に用意', '避難場所・経路を事前に確認', '発生状況をこまめに確認']
+      : ['最新の情報を確認してください', '非常袋の中身を定期点検', '家族の連絡手段を確認'];
+
+  return {
+    id: `selected-${event.id}`,
+    icon: TYPE_ICON[event.type] ?? '⚠',
+    title: TYPE_LABEL[event.type] ?? event.type,
+    level,
+    evacLevel,
+    status: [event.title, area].filter(Boolean).join(' ／ '),
+    detail,
+    actions,
+  };
+}
 
 // ────────────────────────────────────────────────
 // レポート生成ロジック
@@ -537,15 +587,16 @@ export function SituationPanel({
   const landslideWarnings = useDisasterStore((s) => s.landslideWarnings);
   const selectedEvent    = useDisasterStore((s) => s.selectedEvent);
 
-  const highlightedReportId = selectedEvent
-    ? (EVENT_TYPE_TO_REPORT_ID[selectedEvent.type] ?? null)
-    : null;
-
   // ヘッダーバッジ cycling state（Rules of Hooks: early return より前）
   const [displayIdx, setDisplayIdx] = useState(0);
   const [badgeFade, setBadgeFade]   = useState(true);
 
-  const reports: SituationReport[] = [
+  // 選択イベント専用レポート（あれば優先表示）
+  const selectedReport: SituationReport | null = selectedEvent
+    ? buildSelectedEventReport(selectedEvent)
+    : null;
+
+  const baseReports: SituationReport[] = [
     buildEarthquakeReport(events),
     buildTyphoonReport(typhoons),
     buildLinearPrecipReport(linearPrecipBands, events),
@@ -556,15 +607,24 @@ export function SituationPanel({
     buildHazardReport(layers.hazard),
   ].filter((r): r is SituationReport => r !== null);
 
+  // 選択中は専用レポートのみ表示、未選択は全カテゴリをローテーション
+  const reports: SituationReport[] = selectedReport ? [selectedReport] : baseReports;
+
   // イベント選択時にパネルを自動展開
   useEffect(() => {
-    if (highlightedReportId) toggleOpen(true);
+    if (selectedEvent) toggleOpen(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightedReportId]);
+  }, [selectedEvent?.id]);
 
-  // ローテーションタイマー
+  // 選択/解除で先頭へリセット
   useEffect(() => {
-    if (reports.length <= 1) return;
+    setDisplayIdx(0);
+    setBadgeFade(true);
+  }, [selectedReport?.id]);
+
+  // ローテーションタイマー（選択中は停止）
+  useEffect(() => {
+    if (selectedReport || reports.length <= 1) return;
     const cycle = () => {
       setBadgeFade(false);
       setTimeout(() => {
@@ -575,18 +635,7 @@ export function SituationPanel({
     const id = setInterval(cycle, 3500);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reports.length]);
-
-  // 選択イベント → 対応するレポートへジャンプ
-  useEffect(() => {
-    if (!highlightedReportId) return;
-    const idx = reports.findIndex((r) => r.id === highlightedReportId);
-    if (idx >= 0) {
-      setBadgeFade(false);
-      setTimeout(() => { setDisplayIdx(idx); setBadgeFade(true); }, 150);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightedReportId]);
+  }, [selectedReport, reports.length]);
 
   if (reports.length === 0) return null;
 
@@ -713,7 +762,7 @@ export function SituationPanel({
                 key={r.id}
                 report={r}
                 accent={maxMeta.color}
-                highlighted={r.id === highlightedReportId}
+                highlighted={!!selectedReport}
               />
             ))}
 
