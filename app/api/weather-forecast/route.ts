@@ -56,55 +56,77 @@ export async function GET(req: Request) {
     const short  = json[0];
     const weekly = json[1] ?? json[0];
 
-    // ── 3日予報から今日・明日を取得 ──
+    // ── 3日予報から基本情報を取得 ──
     const shortWeather = short?.timeSeries?.find((s) => s.areas?.[0]?.weatherCodes);
     const shortPop     = short?.timeSeries?.find((s) => s.areas?.[0]?.pops);
-    const shortTemp    = short?.timeSeries?.find((s) => s.areas?.[0]?.temps); // min/max 2値
+    const shortTemp    = short?.timeSeries?.find((s) => s.areas?.[0]?.temps);
 
-    // 3日予報の天気コード: [今日(17:00〜), 明日, 明後日]
-    const shortA     = shortWeather?.areas[0];
-    const shortPopA  = shortPop?.areas[0];
-    const shortTempA = shortTemp?.areas[0]; // temps[0]=明日min, temps[1]=明日max
+    const shortA = shortWeather?.areas[0];
 
     // 今日の日付
-    const todayIso = shortWeather?.timeDefines[0]; // "2026-06-28T17:00:00+09:00"
+    const todayIso  = shortWeather?.timeDefines[0];
     const todayDate = todayIso?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
     const todayCode = shortA?.weatherCodes?.[0] ?? '';
 
-    // 今日の降水確率: 3日予報 popsは6h単位。最初のエントリ（今日夜の値）を使う
-    const todayPop = safeInt(shortPopA?.pops?.[0]) ?? 0;
+    // ── 今日の降水確率: 6h 区切りの最大値を採用 ──
+    let todayPop = 0;
+    if (shortPop) {
+      const aPops = shortPop.areas[0]?.pops ?? [];
+      const vals  = shortPop.timeDefines
+        .map((iso, i) => ({ d: iso.slice(0, 10), v: safeInt(aPops[i]) }))
+        .filter((x) => x.d === todayDate && x.v !== undefined)
+        .map((x) => x.v!);
+      if (vals.length > 0) todayPop = Math.max(...vals);
+    }
+
+    // ── 今日・明日の気温: timeDefines の日付で判定 ──
+    // JMA 慣例: 00:00〜06:00 = 最低気温、09:00〜 = 最高気温
+    let todayTempMax: number | undefined;
+    let todayTempMin: number | undefined;
+    let tomorrowTempMax: number | undefined;
+    let tomorrowTempMin: number | undefined;
+
+    const tomorrowDate = shortWeather?.timeDefines[1]?.slice(0, 10);
+
+    if (shortTemp) {
+      const aTemps = shortTemp.areas[0]?.temps ?? [];
+      shortTemp.timeDefines.forEach((iso, i) => {
+        const d    = iso.slice(0, 10);
+        const hour = parseInt(iso.slice(11, 13) || '0', 10);
+        const v    = safeInt(aTemps[i]);
+        if (v === undefined) return;
+        if (d === todayDate) {
+          if (hour >= 9) { todayTempMax = v; } else { todayTempMin = v; }
+        } else if (tomorrowDate && d === tomorrowDate) {
+          if (hour >= 9) { tomorrowTempMax = v; } else { tomorrowTempMin = v; }
+        }
+      });
+    }
 
     const today: ForecastDay = {
       date: todayDate,
       weather: CODE_TEXT[todayCode] ?? shortA?.weathers?.[0] ?? '不明',
       weatherCode: todayCode,
       popMax: todayPop,
-      // 今日の気温は3日予報では提供されないため undefined
-      tempMax: undefined,
-      tempMin: undefined,
+      tempMax: todayTempMax,
+      tempMin: todayTempMin,
     };
 
-    // 明日の日付と気温（3日予報の temps[0]=min, temps[1]=max が明日分）
-    const tomorrowDate = shortWeather?.timeDefines[1]?.slice(0, 10);
-    const tomorrowTempMin = safeInt(shortTempA?.temps?.[0]);
-    const tomorrowTempMax = safeInt(shortTempA?.temps?.[1]);
-
     // ── 週間予報を取得（明日〜） ──
-    const wSeries = weekly?.timeSeries ?? [];
+    const wSeries  = weekly?.timeSeries ?? [];
     const wWeather = wSeries.find((s) => s.areas?.[0]?.weatherCodes);
     const wTemp    = wSeries.find((s) => s.areas?.[0]?.tempsMax);
 
     if (!wWeather) throw new Error('No weather series found');
 
     const wA    = wWeather.areas[0];
-    const wPopA = wWeather.areas[0]; // pops が weatherCodes と同じ series に入っている
     const wTmpA = wTemp?.areas[0];
 
     const weeklyDays: ForecastDay[] = wWeather.timeDefines.map((iso, i) => {
-      const date = iso.slice(0, 10);
-      const code = wA.weatherCodes?.[i] ?? '';
+      const date   = iso.slice(0, 10);
+      const code   = wA.weatherCodes?.[i] ?? '';
       const rawPop = wA.pops?.[i];
-      const pop = rawPop && rawPop !== '' ? parseInt(rawPop, 10) : 0;
+      const pop    = rawPop && rawPop !== '' ? parseInt(rawPop, 10) : 0;
 
       let tMax = safeInt(wTmpA?.tempsMax?.[i]);
       let tMin = safeInt(wTmpA?.tempsMin?.[i]);
@@ -129,6 +151,12 @@ export async function GET(req: Request) {
     const days: ForecastDay[] = weeklyDays[0]?.date === todayDate
       ? weeklyDays
       : [today, ...weeklyDays];
+
+    // 週間予報に含まれている今日の行に気温が欠けている場合は補完
+    if (days[0]?.date === todayDate) {
+      if (days[0].tempMax === undefined) days[0] = { ...days[0], tempMax: todayTempMax };
+      if (days[0].tempMin === undefined) days[0] = { ...days[0], tempMin: todayTempMin };
+    }
 
     return NextResponse.json({ days, areaName: wA.area?.name ?? shortA?.area?.name ?? '' });
   } catch (err) {
