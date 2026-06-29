@@ -29,10 +29,17 @@ function maxScaleToSeverity(maxScale: number): Severity {
   return 'info';
 }
 
+// domesticTsunami フィールドと津波の有無の対応
+const TSUNAMI_NONE = new Set(['None', 'Unknown', 'Checking']);
+
 function toDisasterEvent(record: P2PQuakeRecord): DisasterEvent {
-  const eq = record.earthquake;
+  const eq   = record.earthquake;
   const hypo = eq?.hypocenter;
   const scale = eq?.maxScale ?? -1;
+  const hasTsunami = eq?.domesticTsunami && !TSUNAMI_NONE.has(eq.domesticTsunami);
+  const tsunamiSuffix = hasTsunami
+    ? ` ⚠津波${eq!.domesticTsunami === 'Warning' ? '警報' : '注意報'}`
+    : '';
 
   const prefSet = new Set(record.points?.map((p) => p.pref) ?? []);
 
@@ -41,8 +48,8 @@ function toDisasterEvent(record: P2PQuakeRecord): DisasterEvent {
     type: 'earthquake',
     severity: maxScaleToSeverity(scale),
     title: hypo?.name
-      ? `${hypo.name} M${hypo.magnitude}`
-      : '地震情報',
+      ? `${hypo.name} M${hypo.magnitude}${tsunamiSuffix}`
+      : `地震情報${tsunamiSuffix}`,
     occurredAt: eq?.time ?? record.time,
     location:
       hypo && hypo.latitude !== -200
@@ -57,10 +64,10 @@ function toDisasterEvent(record: P2PQuakeRecord): DisasterEvent {
 export class P2PQuakeAdapter implements EarthquakeSource {
   private readonly baseUrl = 'https://api.p2pquake.net/v2';
 
-  async fetchRecent(limit = 10): Promise<DisasterEvent[]> {
+  async fetchRecent(limit = 20): Promise<DisasterEvent[]> {
     const res = await fetch(
       `${this.baseUrl}/history?codes=551&limit=${limit}`,
-      { next: { revalidate: 60 } }
+      { cache: 'no-store' }
     );
     if (!res.ok) throw new Error(`P2PQuake API error: ${res.status}`);
     const data: P2PQuakeRecord[] = await res.json();

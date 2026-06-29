@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useDisasterStore } from '@/store/useDisasterStore';
-import type { TyphoonInfo, LinearPrecipBand, LandslideWarning, DisasterEvent } from '@/lib/model';
+import type { TyphoonInfo, LinearPrecipBand, LandslideWarning, DisasterEvent } from './model';
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     return res.json() as Promise<T>;
   } catch {
@@ -22,27 +22,30 @@ export function useWeatherPoller() {
   const addEvents            = useDisasterStore((s) => s.addEvents);
 
   useEffect(() => {
-    async function poll() {
-      // ── 雷ナウキャスト ──
-      const thunder = await fetchJson<{ validtime: string }>('/api/thunder-nowcast');
-      if (thunder?.validtime) setThunderTileTime(thunder.validtime);
+    // ── 雷ナウキャスト（タイルURL更新）──────────────────────────────────
+    async function pollThunder() {
+      const data = await fetchJson<{ validtime: string }>('/api/thunder-nowcast');
+      if (data?.validtime) setThunderTileTime(data.validtime);
+    }
 
-      // ── 台風 ──
-      const typhoonRes = await fetchJson<{ typhoons: TyphoonInfo[] }>('/api/typhoon');
-      const typhoons = typhoonRes?.typhoons ?? [];
+    // ── 台風 ────────────────────────────────────────────────────────────
+    async function pollTyphoon() {
+      const res = await fetchJson<{ typhoons: TyphoonInfo[] }>('/api/typhoon');
+      const typhoons = res?.typhoons ?? [];
       setTyphoons(typhoons);
 
-      // 台風イベントをフィードに追加
       const catLabel: Record<string, string> = {
-        TY: '台風', STS: '強熱帯暴風', TS: '熱帯暴風', TD: '熱帯低気圧', ET: '温帯低気圧', unknown: '熱帯じょう乱', LOW: '温帯低気圧',
+        TY: '台風', STS: '強熱帯暴風', TS: '熱帯暴風', TD: '熱帯低気圧',
+        ET: '温帯低気圧', unknown: '熱帯じょう乱',
       };
       const typhoonEvents: DisasterEvent[] = typhoons.map((t) => ({
         id: `typhoon-${t.id}`,
         type: 'typhoon',
-        severity: t.pressureHPa > 0 && t.pressureHPa < 930 ? 'emergency'
-                : t.pressureHPa > 0 && t.pressureHPa < 960 ? 'warning'
-                : 'advisory',
-        title: `${catLabel[t.category ?? 'unknown'] ?? '台風'} ${t.name}${t.nameEn ? ` (${t.nameEn})` : ''} - ${t.pressureHPa ? `${t.pressureHPa}hPa` : '気圧不明'} / ${t.maxWindKt ? `${t.maxWindKt}kt` : ''}`,
+        severity:
+          t.pressureHPa > 0 && t.pressureHPa < 930 ? 'emergency'
+          : t.pressureHPa > 0 && t.pressureHPa < 960 ? 'warning'
+          : 'advisory',
+        title: `${catLabel[t.category ?? 'unknown'] ?? '台風'} ${t.name}${t.nameEn ? ` (${t.nameEn})` : ''} — ${t.pressureHPa ? `${t.pressureHPa}hPa` : '気圧不明'}${t.maxWindKt ? ` / ${t.maxWindKt}kt` : ''}`,
         occurredAt: t.history.at(-1)?.time ?? new Date().toISOString(),
         location: { lat: t.lat, lng: t.lng },
         area: ['西太平洋'],
@@ -50,46 +53,69 @@ export function useWeatherPoller() {
         source: 'jma-typhoon',
       }));
       if (typhoonEvents.length > 0) addEvents(typhoonEvents);
+    }
 
-      // ── 線状降水帯 ──
-      const lpRes = await fetchJson<{ bands: LinearPrecipBand[] }>('/api/linear-precip');
-      const bands = lpRes?.bands ?? [];
+    // ── 線状降水帯 ───────────────────────────────────────────────────────
+    async function pollLinearPrecip() {
+      const res = await fetchJson<{ bands: LinearPrecipBand[] }>('/api/linear-precip');
+      const bands = res?.bands ?? [];
       setLinearPrecipBands(bands);
 
-      // 線状降水帯イベントをフィードに追加
       const lpEvents: DisasterEvent[] = bands.map((b) => ({
         id: `lp-${b.id}`,
         type: 'linear_precip',
         severity: 'warning',
-        title: `線状降水帯 - ${b.area}`,
+        title: `線状降水帯 — ${b.area}`,
         occurredAt: b.startedAt,
         area: [b.area],
         raw: b,
         source: 'jma-flood',
       }));
       if (lpEvents.length > 0) addEvents(lpEvents);
+    }
 
-      // ── 土砂災害警戒情報 ──
-      const lsRes = await fetchJson<{ warnings: LandslideWarning[] }>('/api/landslide');
-      const landslideWarnings = lsRes?.warnings ?? [];
-      setLandslideWarnings(landslideWarnings);
+    // ── 土砂災害・大雨・洪水・雷警報（全国47都道府県） ──────────────────
+    async function pollLandslide() {
+      const res = await fetchJson<{ warnings: LandslideWarning[]; events: DisasterEvent[] }>('/api/landslide');
+      if (!res) return;
 
-      // 土砂災害イベントをフィードに追加
-      const lsEvents: DisasterEvent[] = landslideWarnings.map((w) => ({
-        id: `ls-${w.id}`,
-        type: 'landslide',
+      setLandslideWarnings(res.warnings ?? []);
+
+      // 土砂災害 → DisasterEvent
+      const lsEvents: DisasterEvent[] = (res.warnings ?? []).map((w) => ({
+        id: `ls-ev-${w.id}`,
+        type: 'landslide' as const,
         severity: w.level === 'emergency' ? 'emergency' : 'warning',
-        title: `土砂災害警戒情報 - ${w.prefecture} ${w.area}`,
+        title: `土砂災害警戒情報 — ${w.prefecture} ${w.area}`,
         occurredAt: w.issuedAt,
         area: [w.prefecture, w.area],
         raw: w,
         source: 'jma-warning',
       }));
-      if (lsEvents.length > 0) addEvents(lsEvents);
+
+      const allEvents = [...lsEvents, ...(res.events ?? [])];
+      if (allEvents.length > 0) addEvents(allEvents);
     }
 
-    poll();
-    const id = setInterval(poll, 5 * 60 * 1000); // 5分ごと
+    // ── 津波情報（P2PQuake code 552） ───────────────────────────────────
+    async function pollTsunami() {
+      const events = await fetchJson<DisasterEvent[]>('/api/tsunami');
+      if (events && events.length > 0) addEvents(events);
+    }
+
+    // ── まとめて並列実行 ─────────────────────────────────────────────────
+    async function pollAll() {
+      await Promise.allSettled([
+        pollThunder(),
+        pollTyphoon(),
+        pollLinearPrecip(),
+        pollLandslide(),
+        pollTsunami(),
+      ]);
+    }
+
+    pollAll();
+    const id = setInterval(pollAll, 5 * 60 * 1000); // 5分ごと
     return () => clearInterval(id);
   }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents]);
 }
