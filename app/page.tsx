@@ -163,6 +163,71 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
+// ── バージョン手動確認ボタン ──────────────────────────────
+type UpdateState = 'idle' | 'checking' | 'found' | 'latest';
+
+function UpdateCheckMenuItem() {
+  const [state, setState] = useState<UpdateState>('idle');
+
+  async function handleCheck() {
+    if (state === 'checking') return;
+    setState('checking');
+    try {
+      if (!('serviceWorker' in navigator)) { setState('latest'); return; }
+      const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+      if (!reg) { setState('latest'); return; }
+
+      // updatefound が発火すれば「更新あり」→ PwaRegister のバナーが出る
+      const found = await Promise.race<boolean>([
+        new Promise((resolve) => {
+          reg.addEventListener('updatefound', () => resolve(true), { once: true });
+          reg.update().catch(() => resolve(false));
+        }),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 8000)),
+      ]);
+      setState(found ? 'found' : 'latest');
+    } catch {
+      setState('latest');
+    }
+    // 6秒後にリセット
+    setTimeout(() => setState('idle'), 6000);
+  }
+
+  const cfg = {
+    idle:     { icon: '🔄', label: 'バージョン確認',  sub: 'CHECK FOR UPDATE',      color: 'var(--cp-text)' },
+    checking: { icon: '⏳', label: '確認中...',       sub: 'CHECKING...',            color: 'var(--cp-muted)' },
+    found:    { icon: '🆕', label: '更新があります',   sub: '上部の通知から更新してください', color: 'var(--cp-cyan)' },
+    latest:   { icon: '✅', label: '最新バージョンです', sub: 'UP TO DATE',           color: 'var(--cp-text)' },
+  }[state];
+
+  return (
+    <button
+      onClick={handleCheck}
+      disabled={state === 'checking'}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        padding: '14px 16px',
+        gap: 12,
+        background: state === 'found' ? 'rgba(0,229,255,0.07)' : 'transparent',
+        borderBottom: '1px solid rgba(255,23,68,0.12)',
+        borderLeft: state === 'found' ? '2px solid var(--cp-cyan)' : '2px solid transparent',
+        cursor: state === 'checking' ? 'default' : 'pointer',
+        textAlign: 'left',
+        opacity: state === 'checking' ? 0.6 : 1,
+        transition: 'background 0.2s, border-color 0.2s',
+      }}
+    >
+      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{cfg.icon}</span>
+      <div>
+        <div style={{ color: cfg.color, fontSize: 13, letterSpacing: '0.05em' }}>{cfg.label}</div>
+        <div style={{ color: 'var(--cp-muted)', fontSize: 8, letterSpacing: '0.15em', marginTop: 2 }}>{cfg.sub}</div>
+      </div>
+    </button>
+  );
+}
+
 function MobileHamburgerMenu({
   open, activePanel, onSelect, onClose, simpleMode, setSimpleMode,
 }: {
@@ -253,6 +318,9 @@ function MobileHamburgerMenu({
             </button>
           );
         })}
+
+        {/* バージョン確認ボタン */}
+        <UpdateCheckMenuItem />
 
         {/* 区切り + 閉じるボタン */}
         <div style={{ padding: '10px 16px', borderTop: '1px solid var(--cp-border)' }}>
