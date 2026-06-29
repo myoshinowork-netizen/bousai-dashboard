@@ -202,7 +202,7 @@ function buildSentences(
 // アニメーション再起動を完全に回避するため、requestAnimationFrame で
 // 位置を自前管理する。コンテンツが更新されても position が継続される。
 // ────────────────────────────────────────────────
-const SPEED_PX = 80; // px / 秒
+const SPEED_PX = 55; // px / 秒
 
 function TickerTrack({ sentences }: { sentences: { text: string; color: string }[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
