@@ -61,12 +61,13 @@ export function useWeatherPoller() {
       const bands = res?.bands ?? [];
       setLinearPrecipBands(bands);
 
+      const now = new Date().toISOString();
       const lpEvents: DisasterEvent[] = bands.map((b) => ({
         id: `lp-${b.id}`,
         type: 'linear_precip',
         severity: 'warning',
-        title: `線状降水帯 — ${b.area}`,
-        occurredAt: b.startedAt,
+        title: `線状降水帯発生中 — ${b.area}`,
+        occurredAt: now, // 現在アクティブな警報として常に最新時刻を使用
         area: [b.area],
         raw: b,
         source: 'jma-flood',

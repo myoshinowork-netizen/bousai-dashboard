@@ -102,10 +102,23 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   setEvents: (events) => set({ events }),
   addEvents: (incoming) =>
     set((state) => {
-      const existingIds = new Set(state.events.map((e) => e.id));
-      const newEvents = incoming.filter((e) => !existingIds.has(e.id));
-      if (newEvents.length === 0) return state;
-      return { events: [...newEvents, ...state.events].slice(0, 200) };
+      // 既存イベントをマップで管理し、同一IDのイベントは occurredAt が新しい場合に更新する。
+      // これにより天気警報（5分ごとに現在時刻で更新）が常に最新として上位に表示される。
+      const map = new Map(state.events.map((e) => [e.id, e]));
+      let changed = false;
+      for (const e of incoming) {
+        const prev = map.get(e.id);
+        if (!prev || prev.occurredAt < e.occurredAt || prev.severity !== e.severity) {
+          map.set(e.id, e);
+          changed = true;
+        }
+      }
+      if (!changed) return state;
+      return {
+        events: Array.from(map.values())
+          .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+          .slice(0, 200),
+      };
     }),
   selectEvent: (selectedEvent) => set({ selectedEvent }),
   toggleLayer: (key) =>

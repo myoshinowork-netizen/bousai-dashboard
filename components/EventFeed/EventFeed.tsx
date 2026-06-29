@@ -62,6 +62,11 @@ const EventItem = memo(function EventItem({ event }: { event: DisasterEvent }) {
     }
   }
 
+  // 地域タグを最大3件まで表示（重複除去）
+  const areaChips = event.area
+    ? [...new Set(event.area)].slice(0, 3)
+    : [];
+
   return (
     <button
       onClick={handleClick}
@@ -78,6 +83,7 @@ const EventItem = memo(function EventItem({ event }: { event: DisasterEvent }) {
         boxShadow: isSelected ? '0 0 10px rgba(0,229,255,0.15)' : 'none',
       }}
     >
+      {/* 行1: レベル・種別バッジ・時刻 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
         <span style={{
           fontFamily: 'var(--font-mono)', color, fontSize: 8,
@@ -98,21 +104,39 @@ const EventItem = memo(function EventItem({ event }: { event: DisasterEvent }) {
           {formatTime(event.occurredAt)}
         </span>
       </div>
+
+      {/* 行2: 発生地域（目立つチップ形式） */}
+      {areaChips.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 4 }}>
+          {areaChips.map((a) => (
+            <span
+              key={a}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 8,
+                letterSpacing: '0.06em',
+                color: isSelected ? 'var(--cp-cyan)' : color,
+                background: isSelected ? 'rgba(0,229,255,0.1)' : `${color}18`,
+                border: `1px solid ${isSelected ? 'rgba(0,229,255,0.3)' : `${color}40`}`,
+                padding: '1px 5px',
+                borderRadius: 2,
+              }}
+            >
+              {a}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 行3: イベントタイトル */}
       <div style={{
         fontFamily: 'var(--font-ui)', fontWeight: 500,
-        color: isSelected ? 'var(--cp-cyan)' : 'var(--cp-text)',
-        fontSize: 11, letterSpacing: '0.04em', lineHeight: 1.3,
+        color: isSelected ? 'var(--cp-text)' : 'var(--cp-text)',
+        fontSize: 10, letterSpacing: '0.03em', lineHeight: 1.35,
+        opacity: 0.85,
       }}>
         {event.title}
       </div>
-      {event.area && (
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-text-dim)',
-          letterSpacing: '0.08em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {event.area.slice(0, 3).join(' · ')}
-        </div>
-      )}
     </button>
   );
 });
