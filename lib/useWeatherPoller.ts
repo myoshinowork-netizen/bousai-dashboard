@@ -21,6 +21,7 @@ export function useWeatherPoller() {
   const setLandslideWarnings = useDisasterStore((s) => s.setLandslideWarnings);
   const addEvents            = useDisasterStore((s) => s.addEvents);
   const replaceEventsByType  = useDisasterStore((s) => s.replaceEventsByType);
+  const setLastUpdated       = useDisasterStore((s) => s.setLastUpdated);
 
   useEffect(() => {
     // ── 雷ナウキャスト（タイルURL更新）──────────────────────────────────
@@ -64,13 +65,11 @@ export function useWeatherPoller() {
       const bands = res?.bands ?? [];
       setLinearPrecipBands(bands);
 
-      // 複数バンドを1件に集約して表示（フィードに重複が出ないよう type ごと差し替え）
       if (bands.length === 0) {
         replaceEventsByType('linear_precip', []);
         return;
       }
 
-      // 都道府県単位で重複除去してエリア一覧を作成
       const areas = [...new Set(bands.map((b) => b.area))];
       const areaLabel = areas.slice(0, 3).join('・') + (areas.length > 3 ? `ほか${areas.length - 3}地域` : '');
 
@@ -94,7 +93,6 @@ export function useWeatherPoller() {
 
       setLandslideWarnings(res.warnings ?? []);
 
-      // 土砂災害 → DisasterEvent
       const lsEvents: DisasterEvent[] = (res.warnings ?? []).map((w) => ({
         id: `ls-ev-${w.id}`,
         type: 'landslide' as const,
@@ -125,10 +123,19 @@ export function useWeatherPoller() {
         pollLandslide(),
         pollTsunami(),
       ]);
+      setLastUpdated(new Date().toISOString());
     }
 
     pollAll();
     const id = setInterval(pollAll, 5 * 60 * 1000); // 5分ごと
-    return () => clearInterval(id);
-  }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents, replaceEventsByType]);
+
+    // 手動更新ボタンからのイベント
+    function handleRefresh() { pollAll(); }
+    window.addEventListener('disaster-refresh', handleRefresh);
+
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('disaster-refresh', handleRefresh);
+    };
+  }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents, replaceEventsByType, setLastUpdated]);
 }

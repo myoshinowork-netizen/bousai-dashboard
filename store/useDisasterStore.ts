@@ -53,6 +53,9 @@ type DisasterStore = {
   // 表示モード
   simpleMode: boolean;
 
+  // 最終データ更新時刻
+  lastUpdated: string | null;
+
   // アクション
   setEvents: (events: DisasterEvent[]) => void;
   addEvents: (events: DisasterEvent[]) => void;
@@ -72,6 +75,7 @@ type DisasterStore = {
   setUserLocation: (loc: { lat: number; lng: number; accuracy: number } | null) => void;
   setEewAlert: (eew: EewData | null) => void;
   setSimpleMode: (v: boolean) => void;
+  setLastUpdated: (t: string) => void;
 };
 
 export const useDisasterStore = create<DisasterStore>((set) => ({
@@ -99,6 +103,7 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   userLocation: null,
   eewAlert: null,
   simpleMode: false,
+  lastUpdated: null,
 
   setEvents: (events) => set({ events }),
   addEvents: (incoming) =>
@@ -146,4 +151,5 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   setUserLocation: (userLocation) => set({ userLocation }),
   setEewAlert: (eewAlert) => set({ eewAlert }),
   setSimpleMode: (simpleMode) => set({ simpleMode }),
+  setLastUpdated: (lastUpdated) => set({ lastUpdated }),
 }));

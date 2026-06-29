@@ -123,8 +123,10 @@ function SimpleModeMenuItem({ simpleMode, setSimpleMode, onClose }: {
         textAlign: 'left',
       }}
     >
-      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>
-        {simpleMode ? '🔬' : '👁'}
+      <span style={{ width: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {simpleMode
+          ? <IconLayers size={18} color="rgba(255,255,255,0.8)" />
+          : <IconEye    size={18} color="var(--cp-cyan)" />}
       </span>
       <div>
         <div style={{ color: simpleMode ? '#fff' : 'var(--cp-cyan)', fontSize: 13, letterSpacing: '0.05em' }}>
@@ -160,6 +162,88 @@ function HamburgerIcon({ open }: { open: boolean }) {
       {bar(10, open ? '70%' : '100%')}
       {bar(16)}
     </div>
+  );
+}
+
+// ── フラット SVG アイコン ─────────────────────────────────
+function IconEye({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="12" rx="10" ry="6.5" />
+      <circle cx="12" cy="12" r="2.5" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+function IconLayers({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 12 12 17 22 12" />
+      <polyline points="2 17 12 22 22 17" />
+    </svg>
+  );
+}
+
+function IconRefresh({ size = 14, color = 'currentColor', spin = false }: { size?: number; color?: string; spin?: boolean }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
+      style={spin ? { animation: 'spin 1s linear infinite' } : undefined}
+    >
+      <polyline points="23 4 23 10 17 10" />
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </svg>
+  );
+}
+
+// ── 最新データ取得ボタン（画面上に表示） ──────────────────
+function RefreshButton() {
+  const lastUpdated = useDisasterStore((s) => s.lastUpdated);
+  const [spinning, setSpinning] = useState(false);
+
+  function handleRefresh() {
+    if (spinning) return;
+    setSpinning(true);
+    window.dispatchEvent(new CustomEvent('disaster-refresh'));
+    setTimeout(() => setSpinning(false), 3000);
+  }
+
+  const timeLabel = lastUpdated
+    ? new Date(lastUpdated).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null;
+
+  return (
+    <button
+      onClick={handleRefresh}
+      disabled={spinning}
+      title="最新データ取得"
+      style={{
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '4px 9px',
+        background: spinning ? 'rgba(0,229,255,0.12)' : 'rgba(0,229,255,0.06)',
+        border: `1px solid ${spinning ? 'rgba(0,229,255,0.5)' : 'rgba(0,229,255,0.25)'}`,
+        color: 'var(--cp-cyan)',
+        cursor: spinning ? 'default' : 'pointer',
+        transition: 'all 0.2s',
+      }}
+    >
+      <IconRefresh size={13} color="var(--cp-cyan)" spin={spinning} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.12em', lineHeight: 1.2 }}>
+          {spinning ? '取得中...' : '最新データ取得'}
+        </span>
+        {timeLabel && !spinning && (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--cp-text-dim)', letterSpacing: '0.08em', lineHeight: 1.2 }}>
+            {timeLabel}
+          </span>
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -438,8 +522,13 @@ export default function DashboardPage() {
           </span>
         )}
 
+        {/* 最新データ取得ボタン */}
+        <div style={{ marginLeft: isMobile ? 'auto' : 'auto', flexShrink: 0 }}>
+          <RefreshButton />
+        </div>
+
         {/* 時計（右寄せ） */}
-        <div style={{ marginLeft: isMobile ? 'auto' : 16 }}>
+        <div style={{ marginLeft: 10, flexShrink: 0 }}>
           <Clock />
         </div>
 
@@ -466,7 +555,9 @@ export default function DashboardPage() {
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: 13 }}>{simpleMode ? '🔬' : '👁'}</span>
+            {simpleMode
+              ? <IconLayers size={14} color="#fff" />
+              : <IconEye    size={14} color="var(--cp-cyan)" />}
             {simpleMode ? '詳細モード' : '簡易モード'}
           </button>
         )}
