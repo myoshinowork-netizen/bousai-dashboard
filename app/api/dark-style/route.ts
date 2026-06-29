@@ -7,6 +7,8 @@ const STYLE_URL = 'https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json
 //   boundary-land-level-2 → 国境
 //   boundary-land-disputed → 係争地
 //   boundary-water        → 水域境界
+//   place-country-1/2/3/other → 国名ラベル
+//   place-city / place-town / place-village 等 → 地名ラベル
 
 // ── レイヤー分類 ─────────────────────────────────
 function isWaterLayer(id: string) {
@@ -32,17 +34,18 @@ function remapFont(_fonts: unknown): string[] {
   return ['DotGothic16 Regular'];
 }
 
-function landBoundaryStyle(id: string): { color: string; opacity: number; width: number } {
+// 行政境界ネオンカラー
+function landBoundaryNeon(id: string): { color: string; opacity: number; width: number; blur: number } {
   if (id === 'boundary-land-level-2') {
-    // 国境: 明るいシアン
-    return { color: '#00cfff', opacity: 0.6, width: 1.2 };
+    // 国境: 明るいネオンシアン、グロウ
+    return { color: '#00ffee', opacity: 0.75, width: 1.4, blur: 1.0 };
   }
   if (id === 'boundary-land-level-4') {
-    // 都道府県境: 少し抑えたシアン・青
-    return { color: '#0080b0', opacity: 0.8, width: 0.8 };
+    // 都道府県境: 青緑ネオン
+    return { color: '#00aacc', opacity: 0.85, width: 0.9, blur: 0.5 };
   }
-  // 係争地: オレンジ系
-  return { color: '#b06000', opacity: 0.55, width: 0.7 };
+  // 係争地: オレンジネオン
+  return { color: '#ff9900', opacity: 0.55, width: 0.7, blur: 0 };
 }
 
 function darkify(layer: AnyLayer): AnyLayer {
@@ -53,9 +56,9 @@ function darkify(layer: AnyLayer): AnyLayer {
     return { ...layer, paint: { ...layer.paint, 'background-color': '#00020e' } };
   }
 
-  // ── 行政境界線（都道府県・国境）: UI シアン系で縁取り ──
+  // ── 行政境界線: ネオン縁取り ─────────────────
   if (isLandBoundary(id) && layer.type === 'line') {
-    const { color, opacity, width } = landBoundaryStyle(id);
+    const { color, opacity, width, blur } = landBoundaryNeon(id);
     return {
       ...layer,
       paint: {
@@ -63,7 +66,7 @@ function darkify(layer: AnyLayer): AnyLayer {
         'line-color': color,
         'line-opacity': opacity,
         'line-width': width,
-        'line-blur': 0,
+        'line-blur': blur,
       },
     };
   }
@@ -73,7 +76,7 @@ function darkify(layer: AnyLayer): AnyLayer {
     if (isWaterLayer(id) || id === 'boundary-water') {
       return { ...layer, paint: { ...layer.paint, 'fill-color': '#060d21', 'fill-opacity': 1 } };
     }
-    // 陸地: 従来より少し明るく
+    // 陸地: わずかに明るく
     return { ...layer, paint: { ...layer.paint, 'fill-color': '#0c0f26', 'fill-opacity': 1 } };
   }
 
@@ -86,13 +89,20 @@ function darkify(layer: AnyLayer): AnyLayer {
       return { ...layer, paint: { ...layer.paint, 'line-color': '#0e1530', 'line-opacity': 0.7 } };
     }
     if (id.includes('coast') || id.includes('shore')) {
-      return { ...layer, paint: { ...layer.paint, 'line-color': '#003d5c', 'line-opacity': 0.8 } };
+      return { ...layer, paint: { ...layer.paint, 'line-color': '#004060', 'line-opacity': 0.8 } };
     }
     return { ...layer, paint: { ...layer.paint, 'line-color': '#0a0d22', 'line-opacity': 0.6 } };
   }
 
-  // ── symbol（地名テキスト）────────────────────
+  // ── symbol（地名テキスト）: ネオングロウ ────────
   if (layer.type === 'symbol') {
+    // 国名・都市名の大きさに応じてネオン色を変える
+    const isCountry = id.includes('country');
+    const isCity    = id.includes('city') || id.includes('capital') || id.includes('town');
+    const textColor = isCountry ? '#00ffee' : isCity ? '#00e5ff' : '#00c8ee';
+    const haloColor = isCountry ? '#004455' : isCity ? '#003d5c' : '#002840';
+    const haloWidth = isCountry ? 2.5 : isCity ? 2.2 : 2.0;
+
     return {
       ...layer,
       layout: {
@@ -102,9 +112,11 @@ function darkify(layer: AnyLayer): AnyLayer {
       },
       paint: {
         ...layer.paint,
-        'text-color': '#6aa8d8',
-        'text-halo-color': '#00020e',
-        'text-halo-width': 1.8,
+        'text-color': textColor,
+        'text-halo-color': haloColor,
+        'text-halo-width': haloWidth,
+        // text-halo-blur でネオングロウ感を演出
+        'text-halo-blur': 1.5,
       },
     };
   }

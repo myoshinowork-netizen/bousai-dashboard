@@ -244,23 +244,27 @@ function waveArrivalLabel(occurredAtMs: number, radiusKm: number, speedKmPerSec:
 function initAllLayers(map: maplibregl.Map) {
   const e = EMPTY_FC;
 
-  // ── ハザード・降水タイル ──
+  // OSM スタイルの最初の symbol レイヤーを探す。
+  // ハザード・降水タイルをその手前に挿入することで、地名が常に最前面に表示される。
+  const firstSymbolId = map.getStyle().layers.find((l) => l.type === 'symbol')?.id;
+
+  // ── ハザード・降水タイル（地名より下に配置）──
   map.addSource('hazard_max',   { type: 'raster', tiles: [HAZARD_TILE],    tileSize: 256, maxzoom: 17 });
   map.addSource('hazard_plan',  { type: 'raster', tiles: [FLOOD_TILE],     tileSize: 256, maxzoom: 17 });
   map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
-  map.addLayer({ id: 'hazard-max',  type: 'raster', source: 'hazard_max',  paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } });
-  map.addLayer({ id: 'hazard-plan', type: 'raster', source: 'hazard_plan', paint: { 'raster-opacity': 0.5 }, layout: { visibility: 'none' } });
-  map.addLayer({ id: 'rain',        type: 'raster', source: 'rain_nowcast',paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' } });
+  map.addLayer({ id: 'hazard-max',  type: 'raster', source: 'hazard_max',  paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } }, firstSymbolId);
+  map.addLayer({ id: 'hazard-plan', type: 'raster', source: 'hazard_plan', paint: { 'raster-opacity': 0.5 }, layout: { visibility: 'none' } }, firstSymbolId);
+  map.addLayer({ id: 'rain',        type: 'raster', source: 'rain_nowcast',paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' } }, firstSymbolId);
 
-  // ── 雷ナウキャスト ──
+  // ── 雷ナウキャスト（地名より下）──
   map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
   map.addLayer({ id: 'thunder', type: 'raster', source: 'thunder_nowcast',
-    paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } });
+    paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } }, firstSymbolId);
 
-  // ── 土砂災害危険箇所（GSI）──
+  // ── 土砂災害危険箇所（GSI、地名より下）──
   map.addSource('landslide_hazard', { type: 'raster', tiles: [LANDSLIDE_TILE], tileSize: 256, maxzoom: 17 });
   map.addLayer({ id: 'landslide', type: 'raster', source: 'landslide_hazard',
-    paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } });
+    paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } }, firstSymbolId);
 
   // ── 台風 ──
   // 過去トラック実線
