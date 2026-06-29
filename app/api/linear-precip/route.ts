@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 import type { LinearPrecipBand } from '@/lib/model';
 
-// 気象庁 線状降水帯情報（複数エンドポイントを順番に試行）
+// ──────────────────────────────────────────────────────────────
+// 線状降水帯情報
+//
+// 【表示ソース】気象庁（JMA）公式 JSON
+//   - 速報性: 最速（気象庁が直接配信）
+//   - 信頼性: 最高（政府公式）
+//   - ユーザー信頼: 最高（NHK等が同ソースを使用）
+//
+// 【裏側整合】JSON 3候補 → XML フィードをフォールバック順に試行し、
+//   取得できたソースを `source` フィールドで返す。
+//   表示側は `source` を問わず bands の内容のみ使用する。
+// ──────────────────────────────────────────────────────────────
+
+// JMA 公式エンドポイント（優先順）
 const CANDIDATE_URLS = [
   'https://www.jma.go.jp/bosai/flood/data/linear_precip_band/info.json',
   'https://www.jma.go.jp/bosai/hazard/data/linear_precip_band/info.json',
   'https://www.jma.go.jp/bosai/flood/data/linear_precip/info.json',
 ];
 
-// JMA extra フィード から線状降水帯エントリを抽出するフォールバック
+// 裏側整合用フォールバック（XML フィード）
 const EXTRA_FEED_URL = 'https://www.data.jma.go.jp/developer/xml/feed/extra_l.xml';
 
 type JmaLinearEntry = {
@@ -21,7 +34,9 @@ type JmaLinearEntry = {
   reportTime?: string;
 };
 
-async function tryJsonEndpoints(): Promise<LinearPrecipBand[] | null> {
+type Result = { bands: LinearPrecipBand[]; source: string };
+
+async function tryJsonEndpoints(): Promise<Result | null> {
   for (const url of CANDIDATE_URLS) {
     try {
       const res = await fetch(url, { cache: 'no-store' });
@@ -34,20 +49,23 @@ async function tryJsonEndpoints(): Promise<LinearPrecipBand[] | null> {
 
       if (!Array.isArray(entries) || entries.length === 0) continue;
 
-      return entries.map((e, i): LinearPrecipBand => ({
-        id: `lp-${i}-${e.startTime ?? e.reportDatetime ?? Date.now()}`,
-        area: e.area ?? e.areaName ?? e.prefName ?? e.observingArea ?? '不明',
-        startedAt: e.startTime ?? e.reportDatetime ?? e.reportTime ?? new Date().toISOString(),
-      }));
+      return {
+        source: 'jma-json',
+        bands: entries.map((e, i): LinearPrecipBand => ({
+          id: `lp-${i}-${e.startTime ?? e.reportDatetime ?? Date.now()}`,
+          area: e.area ?? e.areaName ?? e.prefName ?? e.observingArea ?? '不明',
+          startedAt: e.startTime ?? e.reportDatetime ?? e.reportTime ?? new Date().toISOString(),
+        })),
+      };
     } catch { /* try next */ }
   }
   return null;
 }
 
-async function tryXmlFeed(): Promise<LinearPrecipBand[]> {
+async function tryXmlFeed(): Promise<Result> {
   try {
     const res = await fetch(EXTRA_FEED_URL, { cache: 'no-store' });
-    if (!res.ok) return [];
+    if (!res.ok) return { bands: [], source: 'jma-xml-empty' };
     const xml = await res.text();
 
     const bands: LinearPrecipBand[] = [];
@@ -63,7 +81,6 @@ async function tryXmlFeed(): Promise<LinearPrecipBand[]> {
       const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
 
       const title = titleMatch?.[1] ?? '線状降水帯情報';
-      // タイトルから地域名を抽出（例: "大雨情報（線状降水帯）高知県"）
       const areaMatch = title.match(/）\s*(.+)$/) ?? title.match(/（線状降水帯）(.+)$/);
       const area = areaMatch?.[1]?.trim() ?? title;
 
@@ -76,19 +93,20 @@ async function tryXmlFeed(): Promise<LinearPrecipBand[]> {
       if (bands.length >= 10) break;
     }
 
-    return bands;
+    return { bands, source: 'jma-xml' };
   } catch {
-    return [];
+    return { bands: [], source: 'jma-xml-error' };
   }
 }
 
 export async function GET() {
+  // JMA 公式 JSON を優先（表示ソース）
   const fromJson = await tryJsonEndpoints();
   if (fromJson !== null) {
-    return NextResponse.json({ bands: fromJson }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(fromJson, { headers: { 'Cache-Control': 'no-store' } });
   }
 
-  // フォールバック: JMA extra XMLフィードを解析
+  // 裏側整合: XML フィードにフォールバック
   const fromXml = await tryXmlFeed();
-  return NextResponse.json({ bands: fromXml }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json(fromXml, { headers: { 'Cache-Control': 'no-store' } });
 }

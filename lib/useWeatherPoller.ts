@@ -20,6 +20,7 @@ export function useWeatherPoller() {
   const setLinearPrecipBands = useDisasterStore((s) => s.setLinearPrecipBands);
   const setLandslideWarnings = useDisasterStore((s) => s.setLandslideWarnings);
   const addEvents            = useDisasterStore((s) => s.addEvents);
+  const replaceEventsByType  = useDisasterStore((s) => s.replaceEventsByType);
 
   useEffect(() => {
     // ── 雷ナウキャスト（タイルURL更新）──────────────────────────────────
@@ -56,23 +57,34 @@ export function useWeatherPoller() {
     }
 
     // ── 線状降水帯 ───────────────────────────────────────────────────────
+    // 表示ソース: 気象庁（JMA）公式JSON（最速・公式・最信頼）
+    // 裏側整合: APIルート内で複数候補→XMLフォールバックを試行し全データを取得
     async function pollLinearPrecip() {
-      const res = await fetchJson<{ bands: LinearPrecipBand[] }>('/api/linear-precip');
+      const res = await fetchJson<{ bands: LinearPrecipBand[]; source?: string }>('/api/linear-precip');
       const bands = res?.bands ?? [];
       setLinearPrecipBands(bands);
 
-      const now = new Date().toISOString();
-      const lpEvents: DisasterEvent[] = bands.map((b) => ({
-        id: `lp-${b.id}`,
+      // 複数バンドを1件に集約して表示（フィードに重複が出ないよう type ごと差し替え）
+      if (bands.length === 0) {
+        replaceEventsByType('linear_precip', []);
+        return;
+      }
+
+      // 都道府県単位で重複除去してエリア一覧を作成
+      const areas = [...new Set(bands.map((b) => b.area))];
+      const areaLabel = areas.slice(0, 3).join('・') + (areas.length > 3 ? `ほか${areas.length - 3}地域` : '');
+
+      const consolidated: DisasterEvent = {
+        id: 'linear-precip-active',
         type: 'linear_precip',
         severity: 'warning',
-        title: `線状降水帯発生中 — ${b.area}`,
-        occurredAt: now, // 現在アクティブな警報として常に最新時刻を使用
-        area: [b.area],
-        raw: b,
-        source: 'jma-flood',
-      }));
-      if (lpEvents.length > 0) addEvents(lpEvents);
+        title: `線状降水帯発生中 — ${areaLabel}`,
+        occurredAt: new Date().toISOString(),
+        area: areas,
+        raw: bands,
+        source: res?.source ?? 'jma',
+      };
+      replaceEventsByType('linear_precip', [consolidated]);
     }
 
     // ── 土砂災害・大雨・洪水・雷警報（全国47都道府県） ──────────────────
@@ -118,5 +130,5 @@ export function useWeatherPoller() {
     pollAll();
     const id = setInterval(pollAll, 5 * 60 * 1000); // 5分ごと
     return () => clearInterval(id);
-  }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents]);
+  }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents, replaceEventsByType]);
 }

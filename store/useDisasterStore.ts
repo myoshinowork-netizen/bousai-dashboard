@@ -56,6 +56,7 @@ type DisasterStore = {
   // アクション
   setEvents: (events: DisasterEvent[]) => void;
   addEvents: (events: DisasterEvent[]) => void;
+  replaceEventsByType: (type: DisasterEvent['type'], next: DisasterEvent[]) => void;
   selectEvent: (event: DisasterEvent | null) => void;
   toggleLayer: (key: LayerKey) => void;
   enableLayer: (key: LayerKey) => void;
@@ -119,6 +120,14 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
           .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
           .slice(0, 200),
       };
+    }),
+  replaceEventsByType: (type, next) =>
+    set((state) => {
+      const kept = state.events.filter((e) => e.type !== type);
+      const merged = [...next, ...kept]
+        .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+        .slice(0, 200);
+      return { events: merged };
     }),
   selectEvent: (selectedEvent) => set({ selectedEvent }),
   toggleLayer: (key) =>
