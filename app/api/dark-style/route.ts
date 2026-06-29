@@ -9,6 +9,24 @@ const STYLE_URL = 'https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json
 //   boundary-water        → 水域境界
 //   place-country-1/2/3/other → 国名ラベル
 //   place-city / place-town / place-village 等 → 地名ラベル
+//
+// 非表示にするレイヤー（道路番号・シールド・一方通行矢印・POI）:
+//   highway-shield / highway-shield-us-* / highway-name-* / road_oneway* / poi-* / airport-label-major
+const HIDDEN_LAYERS = new Set([
+  'highway-shield',
+  'highway-shield-us-interstate',
+  'highway-shield-us-other',
+  'highway-name-path',
+  'highway-name-minor',
+  'highway-name-major',
+  'road_oneway',
+  'road_oneway_opposite',
+  'poi-level-1',
+  'poi-level-2',
+  'poi-level-3',
+  'poi-railway',
+  'airport-label-major',
+]);
 
 // ── レイヤー分類 ─────────────────────────────────
 function isWaterLayer(id: string) {
@@ -50,6 +68,11 @@ function landBoundaryNeon(id: string): { color: string; opacity: number; width: 
 
 function darkify(layer: AnyLayer): AnyLayer {
   const id = layer.id.toLowerCase();
+
+  // ── 非表示レイヤー（道路番号・シールド・POI など）──
+  if (HIDDEN_LAYERS.has(layer.id)) {
+    return { ...layer, layout: { ...layer.layout, visibility: 'none' } };
+  }
 
   // ── 背景 ─────────────────────────────────────
   if (layer.type === 'background') {
