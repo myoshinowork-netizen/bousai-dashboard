@@ -8,6 +8,7 @@ import type {
   LandslideWarning,
   ForecastDay,
   EewData,
+  TileFrame,
 } from '@/lib/model';
 
 export type LayerKey =
@@ -34,6 +35,8 @@ type DisasterStore = {
   rainTileTime: string | null;
   thunderTileTime: string | null;
   rainTileHistory: string[];  // 利用可能な過去タイル validtime 一覧
+  rainFrames: TileFrame[];    // 過去観測+未来予測フレーム（タイムライン用）
+  thunderFrames: TileFrame[]; // 雷ナウキャスト フレーム（過去3h+予測1h）
 
   // 気象データ
   typhoons: TyphoonInfo[];
@@ -67,6 +70,8 @@ type DisasterStore = {
   setRainTileTime: (t: string) => void;
   setThunderTileTime: (t: string) => void;
   setRainTileHistory: (times: string[]) => void;
+  setRainFrames: (frames: TileFrame[]) => void;
+  setThunderFrames: (frames: TileFrame[]) => void;
   setTyphoons: (typhoons: TyphoonInfo[]) => void;
   setLinearPrecipBands: (bands: LinearPrecipBand[]) => void;
   setLandslideWarnings: (warnings: LandslideWarning[]) => void;
@@ -95,6 +100,8 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   rainTileTime: null,
   thunderTileTime: null,
   rainTileHistory: [],
+  rainFrames: [],
+  thunderFrames: [],
   typhoons: [],
   linearPrecipBands: [],
   landslideWarnings: [],
@@ -143,6 +150,8 @@ export const useDisasterStore = create<DisasterStore>((set) => ({
   setRainTileTime: (rainTileTime) => set({ rainTileTime }),
   setThunderTileTime: (thunderTileTime) => set({ thunderTileTime }),
   setRainTileHistory: (rainTileHistory) => set({ rainTileHistory }),
+  setRainFrames: (rainFrames) => set({ rainFrames }),
+  setThunderFrames: (thunderFrames) => set({ thunderFrames }),
   setTyphoons: (typhoons) => set({ typhoons }),
   setLinearPrecipBands: (linearPrecipBands) => set({ linearPrecipBands }),
   setLandslideWarnings: (landslideWarnings) => set({ landslideWarnings }),

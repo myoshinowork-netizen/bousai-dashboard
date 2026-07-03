@@ -14,7 +14,7 @@ function formatHM(iso: string): string {
 
 const DAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
-function buildSentences(
+export function buildSentences(
   events: ReturnType<typeof useDisasterStore.getState>['events'],
   typhoons: ReturnType<typeof useDisasterStore.getState>['typhoons'],
   linearPrecipBands: ReturnType<typeof useDisasterStore.getState>['linearPrecipBands'],
@@ -93,11 +93,13 @@ function buildSentences(
   const lpBands  = linearPrecipBands;
   const lpEvents = events.filter((e) => e.type === 'linear_precip');
   if (lpBands.length > 0 || lpEvents.length > 0) {
-    const count = lpBands.length > 0 ? lpBands.length : lpEvents.length;
-    const areas = lpBands.length > 0
-      ? lpBands.map((b) => b.area).slice(0, 3).join('・')
-      : [...new Set(lpEvents.flatMap((e) => e.area ?? []))].slice(0, 3).join('・') || '複数地域';
-    out.push({ text: `⛈ 線状降水帯が${areas}で${count}件発生中。極めて激しい雨が継続し、河川増水・土砂崩れの危険が急激に高まっています。`, color: RED });
+    // 「◯件」ではなく発生地域で表現する
+    const lpAreas = lpBands.length > 0
+      ? [...new Set(lpBands.map((b) => b.area))]
+      : [...new Set(lpEvents.flatMap((e) => e.area ?? []))];
+    const areas = lpAreas.slice(0, 3).join('・') || '複数地域';
+    const more  = lpAreas.length > 3 ? `など${lpAreas.length}地域` : '';
+    out.push({ text: `⛈ ${areas}${more}で線状降水帯が発生中。極めて激しい雨が継続し、河川増水・土砂崩れの危険が急激に高まっています。`, color: RED });
     out.push({ text: `⛈【全員避難】河川・崖・低地からただちに離れ、安全な高所へ避難してください。外出を控え、すでに安全な場所にいる方はそのままお待ちください。`, color: RED });
   }
 

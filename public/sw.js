@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cgp-v12';
+const CACHE_NAME = 'cgp-v13';
 
 const SHELL_ASSETS = [
   '/',
@@ -7,6 +7,11 @@ const SHELL_ASSETS = [
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png',
 ];
+
+// 更新バナーの「再読込」から SKIP_WAITING を受けて即時アクティベート
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // インストール: アプリシェルをキャッシュ＋即座に制御を取得
 self.addEventListener('install', (event) => {
@@ -40,16 +45,19 @@ self.addEventListener('activate', (event) => {
 });
 
 // フェッチ戦略:
-// - リアルタイムAPI / 地図タイル: ネットワーク優先（常に最新）
-// - アプリシェル: キャッシュ優先 → ネットワーク フォールバック
+// - 自前 /api/* & リアルタイム外部API / 地図タイル: ネットワークのみ（常に最新・キャッシュしない）
+// - ナビゲーション(HTML): ネットワーク優先 → キャッシュ フォールバック
+// - その他アプリシェル: キャッシュ優先 → ネットワーク フォールバック
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   const isRealtimeApi =
+    url.pathname.startsWith('/api/') || // 自前APIは絶対にキャッシュしない
     url.hostname.includes('api.p2pquake') ||
     url.hostname.includes('weather.tsukumijima') ||
     url.hostname.includes('www.jma.go.jp') ||
+    url.hostname.includes('data.jma.go.jp') ||
     url.hostname.includes('tile.openstreetmap') ||
     url.hostname.includes('cyberjapandata') ||
     url.hostname.includes('disaportal.gsi') ||
@@ -59,6 +67,22 @@ self.addEventListener('fetch', (event) => {
 
   if (isRealtimeApi) {
     event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+    return;
+  }
+
+  // HTML ナビゲーションはネットワーク優先（デプロイ後すぐ新シェルを取得）
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((c) => c ?? caches.match('/')))
+    );
     return;
   }
 

@@ -79,12 +79,18 @@ async function tryXmlFeed(): Promise<Result> {
       const entry = m[1];
       if (!entry.includes('線状降水帯')) continue;
 
-      const titleMatch   = entry.match(/<title>([^<]+)<\/title>/);
       const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
 
-      const title = titleMatch?.[1] ?? '線状降水帯情報';
-      const areaMatch = title.match(/）\s*(.+)$/) ?? title.match(/（線状降水帯）(.+)$/);
-      const area = areaMatch?.[1]?.trim() ?? title;
+      // 地域名は content の冒頭にある「【熊本県気象解説情報…】」等から抽出する
+      // （<title> は "府県気象情報" のような総称のため使えない）
+      const contentMatch = entry.match(/<content[^>]*>([\s\S]{0,200}?)<\/content>|<content[^>]*>([\s\S]{0,200})/);
+      const content = contentMatch?.[1] ?? contentMatch?.[2] ?? '';
+      const prefMatch = content.match(/【?([^【】（）\s]+?[都道府県])/);
+      const area = prefMatch?.[1]?.trim();
+      if (!area || area === '府県') continue;
+
+      // 同一地域の重複を排除
+      if (bands.some((b) => b.area === area)) continue;
 
       bands.push({
         id: `lp-feed-${idx++}-${updatedMatch?.[1] ?? Date.now()}`,

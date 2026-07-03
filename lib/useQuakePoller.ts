@@ -30,9 +30,23 @@ export function useQuakePoller() {
     function handleRefresh() { poll(); }
     window.addEventListener('disaster-refresh', handleRefresh);
 
+    // タブ復帰・PWA再表示時に即時更新（バックグラウンド中の欠落を補完）
+    // visibilitychange の連発対策として最低15秒間隔に制限
+    let lastVisiblePoll = 0;
+    function handleVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastVisiblePoll < 15_000) return;
+      lastVisiblePoll = Date.now();
+      poll();
+    }
+    document.addEventListener('visibilitychange', handleVisible);
+    window.addEventListener('pageshow', handleRefresh);
+
     return () => {
       clearInterval(id);
       window.removeEventListener('disaster-refresh', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisible);
+      window.removeEventListener('pageshow', handleRefresh);
     };
   }, [addEvents, setLastUpdated]);
 }

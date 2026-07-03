@@ -74,6 +74,16 @@ export type ForecastDay = {
   popMax: number;      // 最大降水確率 0-100
   tempMax?: number;
   tempMin?: number;
+  reliability?: string; // 週間予報の信頼度 A/B/C（Aが最も確度高）
+  wind?: string;        // 風の予報（3日予報のみ）
+  pops6h?: { label: string; pop: number }[]; // 時間帯別降水確率（今日・明日のみ）
+};
+
+// 降水・雷ナウキャストのタイルフレーム（タイムライン用）
+export type TileFrame = {
+  basetime: string;   // YYYYMMDDHHMMSS
+  validtime: string;  // YYYYMMDDHHMMSS
+  kind?: 'nowc' | 'rasrf';
 };
 
 // 緊急地震速報（EEW）

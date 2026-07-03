@@ -18,11 +18,24 @@ const HAZARD_TILE    = 'https://disaportal.gsi.go.jp/data/raster/01_flood_l2_shi
 const FLOOD_TILE     = 'https://disaportal.gsi.go.jp/data/raster/01_flood_l1_shinsuishin_newlegend_data/{z}/{x}/{y}.png';
 const LANDSLIDE_TILE = 'https://disaportal.gsi.go.jp/data/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png';
 
-function rainTileUrl(validtime: string) {
-  return `https://www.jma.go.jp/bosai/jmatile/data/nowc/${validtime}/none/${validtime}/surf/hrpns/{z}/{x}/{y}.png`;
+// 降水タイル: 観測/ナウキャスト予測は nowc/hrpns、短時間予報（+1h超）は rasrf
+function rainTileUrl(basetime: string, validtime: string, kind: 'nowc' | 'rasrf' = 'nowc') {
+  if (kind === 'rasrf') {
+    return `https://www.jma.go.jp/bosai/jmatile/data/rasrf/${basetime}/none/${validtime}/surf/rasrf/{z}/{x}/{y}.png`;
+  }
+  return `https://www.jma.go.jp/bosai/jmatile/data/nowc/${basetime}/none/${validtime}/surf/hrpns/{z}/{x}/{y}.png`;
 }
-function thunderTileUrl(validtime: string) {
-  return `https://www.jma.go.jp/bosai/jmatile/data/thunder/${validtime}/none/${validtime}/surf/thunder/{z}/{x}/{y}.png`;
+// 雷ナウキャスト: 正しいパスは nowc/.../surf/thns（旧 thunder/.../surf/thunder は 404）
+function thunderTileUrl(basetime: string, validtime: string) {
+  return `https://www.jma.go.jp/bosai/jmatile/data/nowc/${basetime}/none/${validtime}/surf/thns/{z}/{x}/{y}.png`;
+}
+
+// "YYYYMMDDHHMMSS"（JMA validtime は UTC 表記）→ epoch ms
+function jmaUtcToMs(vt: string): number {
+  return Date.UTC(
+    +vt.slice(0, 4), +vt.slice(4, 6) - 1, +vt.slice(6, 8),
+    +vt.slice(8, 10), +vt.slice(10, 12), +vt.slice(12, 14),
+  );
 }
 
 // GeoJSON ヘルパー
@@ -251,13 +264,14 @@ function initAllLayers(map: maplibregl.Map) {
   // ── ハザード・降水タイル（地名より下に配置）──
   map.addSource('hazard_max',   { type: 'raster', tiles: [HAZARD_TILE],    tileSize: 256, maxzoom: 17 });
   map.addSource('hazard_plan',  { type: 'raster', tiles: [FLOOD_TILE],     tileSize: 256, maxzoom: 17 });
-  map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
+  // minzoom 2: 広域表示でも消えない / maxzoom 9: それ以上は自動オーバーズーム（rasrf はz9まで提供）
+  map.addSource('rain_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 2, maxzoom: 9 });
   map.addLayer({ id: 'hazard-max',  type: 'raster', source: 'hazard_max',  paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } }, firstSymbolId);
   map.addLayer({ id: 'hazard-plan', type: 'raster', source: 'hazard_plan', paint: { 'raster-opacity': 0.5 }, layout: { visibility: 'none' } }, firstSymbolId);
   map.addLayer({ id: 'rain',        type: 'raster', source: 'rain_nowcast',paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' } }, firstSymbolId);
 
   // ── 雷ナウキャスト（地名より下）──
-  map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 3, maxzoom: 10 });
+  map.addSource('thunder_nowcast', { type: 'raster', tiles: [], tileSize: 256, minzoom: 2, maxzoom: 9 });
   map.addLayer({ id: 'thunder', type: 'raster', source: 'thunder_nowcast',
     paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } }, firstSymbolId);
 
@@ -377,30 +391,32 @@ export const DisasterMap = memo(function DisasterMap() {
   const layers           = useDisasterStore((s) => s.layers);
   const rainTileTime     = useDisasterStore((s) => s.rainTileTime);
   const thunderTileTime  = useDisasterStore((s) => s.thunderTileTime);
-  const rainTileHistory  = useDisasterStore((s) => s.rainTileHistory);
+  const rainFrames       = useDisasterStore((s) => s.rainFrames);
+  const thunderFrames    = useDisasterStore((s) => s.thunderFrames);
   const typhoons         = useDisasterStore((s) => s.typhoons);
   const selectedTime     = useDisasterStore((s) => s.selectedTime);
   const setRainTileTime  = useDisasterStore((s) => s.setRainTileTime);
-  const setRainTileHistory = useDisasterStore((s) => s.setRainTileHistory);
+  const setRainFrames    = useDisasterStore((s) => s.setRainFrames);
   const userLocation     = useDisasterStore((s) => s.userLocation);
   const setUserLocation  = useDisasterStore((s) => s.setUserLocation);
 
-  // 降水ナウキャスト validtime + 履歴 取得
+  // 降水ナウキャスト validtime + フレーム一覧（過去観測+未来予測）取得
   useEffect(() => {
     async function fetchTime() {
       try {
         const [latest, history] = await Promise.all([
-          fetch('/api/jma-nowcast').then((r) => r.json()).catch(() => null),
-          fetch('/api/rain-history').then((r) => r.json()).catch(() => null),
+          fetch('/api/jma-nowcast', { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
+          fetch('/api/rain-history', { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
         ]);
         if (latest?.validtime) setRainTileTime(latest.validtime);
-        if (history?.validtimes) setRainTileHistory(history.validtimes);
+        if (history?.frames) setRainFrames(history.frames);
       } catch { /* ignore */ }
     }
     fetchTime();
     const id = setInterval(fetchTime, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [setRainTileTime, setRainTileHistory]);
+    window.addEventListener('disaster-refresh', fetchTime);
+    return () => { clearInterval(id); window.removeEventListener('disaster-refresh', fetchTime); };
+  }, [setRainTileTime, setRainFrames]);
 
   // 地図初期化
   useEffect(() => {
@@ -422,12 +438,12 @@ export const DisasterMap = memo(function DisasterMap() {
       const initRainTime = useDisasterStore.getState().rainTileTime;
       if (initRainTime) {
         const rainSrc = map.getSource('rain_nowcast') as maplibregl.RasterTileSource | undefined;
-        if (rainSrc) rainSrc.setTiles([rainTileUrl(initRainTime)]);
+        if (rainSrc) rainSrc.setTiles([rainTileUrl(initRainTime, initRainTime)]);
       }
       const initThunderTime = useDisasterStore.getState().thunderTileTime;
       if (initThunderTime) {
         const thunderSrc = map.getSource('thunder_nowcast') as maplibregl.RasterTileSource | undefined;
-        if (thunderSrc) thunderSrc.setTiles([thunderTileUrl(initThunderTime)]);
+        if (thunderSrc) thunderSrc.setTiles([thunderTileUrl(initThunderTime, initThunderTime)]);
       }
 
       // 台風データを地図ソースに反映するヘルパー（selectedTimeはstoreから毎回取得）
@@ -494,45 +510,61 @@ export const DisasterMap = memo(function DisasterMap() {
     if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
   }, [layers]);
 
-  // 降水タイル URL 更新（タイムライン対応）
+  // 降水タイル URL 更新（タイムライン対応: 過去観測 + 未来予測フレームから最近傍を選択）
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // タイムラインが設定されていれば最近傍の履歴タイルを選択
-    let tileTime: string | null = rainTileTime;
-    if (selectedTime !== null && rainTileHistory.length > 0) {
+    let url: string | null = null;
+    if (selectedTime !== null && rainFrames.length > 0) {
       const target = selectedTime;
-      let best: string | null = null;
+      let best: typeof rainFrames[number] | null = null;
       let bestDiff = Infinity;
-      for (const vt of rainTileHistory) {
-        const y = +vt.slice(0,4), mo = +vt.slice(4,6)-1, d = +vt.slice(6,8);
-        const h = +vt.slice(8,10), mi = +vt.slice(10,12), s = +vt.slice(12,14);
-        const t = new Date(y,mo,d,h,mi,s).getTime();
-        const diff = Math.abs(t - target);
-        if (diff < bestDiff) { bestDiff = diff; best = vt; }
+      for (const f of rainFrames) {
+        const diff = Math.abs(jmaUtcToMs(f.validtime) - target);
+        if (diff < bestDiff) { bestDiff = diff; best = f; }
       }
-      tileTime = best;
+      if (best) url = rainTileUrl(best.basetime, best.validtime, best.kind ?? 'nowc');
+    } else if (rainTileTime) {
+      url = rainTileUrl(rainTileTime, rainTileTime);
     }
 
-    if (!tileTime) return;
+    if (!url) return;
     const apply = () => {
       const src = map.getSource('rain_nowcast') as maplibregl.RasterTileSource | undefined;
-      if (src) src.setTiles([rainTileUrl(tileTime!)]);
+      if (src) src.setTiles([url!]);
     };
-    if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
-  }, [rainTileTime, rainTileHistory, selectedTime]);
+    // isStyleLoaded() はタイル読込中に false を返すことがあり、style.load は再発火しない。
+    // ソースの存在で判定して即時適用する。
+    if (map.getSource('rain_nowcast')) apply(); else map.once('style.load', apply);
+  }, [rainTileTime, rainFrames, selectedTime]);
 
-  // 雷タイル URL 更新
+  // 雷タイル URL 更新（タイムライン対応）
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !thunderTileTime) return;
+    if (!map) return;
+
+    let url: string | null = null;
+    if (selectedTime !== null && thunderFrames.length > 0) {
+      const target = selectedTime;
+      let best: typeof thunderFrames[number] | null = null;
+      let bestDiff = Infinity;
+      for (const f of thunderFrames) {
+        const diff = Math.abs(jmaUtcToMs(f.validtime) - target);
+        if (diff < bestDiff) { bestDiff = diff; best = f; }
+      }
+      if (best) url = thunderTileUrl(best.basetime, best.validtime);
+    } else if (thunderTileTime) {
+      url = thunderTileUrl(thunderTileTime, thunderTileTime);
+    }
+
+    if (!url) return;
     const apply = () => {
       const src = map.getSource('thunder_nowcast') as maplibregl.RasterTileSource | undefined;
-      if (src) src.setTiles([thunderTileUrl(thunderTileTime)]);
+      if (src) src.setTiles([url!]);
     };
-    if (map.isStyleLoaded()) apply(); else map.once('style.load', apply);
-  }, [thunderTileTime]);
+    if (map.getSource('thunder_nowcast')) apply(); else map.once('style.load', apply);
+  }, [thunderTileTime, thunderFrames, selectedTime]);
 
   // 台風 GeoJSON 更新（typhoons または selectedTime が変わったとき）
   useEffect(() => {

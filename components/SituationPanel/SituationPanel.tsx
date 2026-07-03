@@ -270,17 +270,19 @@ function buildThunderReport(isActive: boolean): SituationReport | null {
 function buildLinearPrecipReport(bands: LinearPrecipBand[], events: DisasterEvent[]): SituationReport | null {
   const evEvents = events.filter((e) => e.type === 'linear_precip');
   if (bands.length === 0 && evEvents.length === 0) return null;
-  const areas = bands.length > 0
-    ? bands.map((b) => b.area).join('・')
-    : [...new Set(evEvents.flatMap((e) => e.area ?? []))].slice(0, 3).join('・') || '確認中';
-  const count = bands.length > 0 ? bands.length : evEvents.length;
+  // 線状降水帯は「発生している地域」で表現する（情報源の件数ではない）
+  const areaList = bands.length > 0
+    ? [...new Set(bands.map((b) => b.area))]
+    : [...new Set(evEvents.flatMap((e) => e.area ?? []))];
+  const areas = areaList.slice(0, 3).join('・') || '確認中';
+  const suffix = areaList.length > 3 ? ` ほか${areaList.length - 3}地域` : '';
   return {
     id: 'linearPrecip',
     icon: '⛈',
     title: '線状降水帯',
     level: 4,
     evacLevel: 4,
-    status: `${count} 件発生中 ／ ${areas}`,
+    status: `発生中 ／ 対象地域: ${areas}${suffix}`,
     detail: '線状降水帯が確認されています。極めて激しい雨が同一地域に長時間継続し、甚大な浸水・土砂災害の危険が差し迫っています。',
     actions: ['【全員避難】直ちに安全な場所へ移動', '河川・山際・低地から離れ高台へ', '地下・半地下・車道の浸水路に入らない', '自治体の避難指示・警報に即座に従う'],
   };

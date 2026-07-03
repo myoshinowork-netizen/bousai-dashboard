@@ -16,6 +16,7 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 
 export function useWeatherPoller() {
   const setThunderTileTime   = useDisasterStore((s) => s.setThunderTileTime);
+  const setThunderFrames     = useDisasterStore((s) => s.setThunderFrames);
   const setTyphoons          = useDisasterStore((s) => s.setTyphoons);
   const setLinearPrecipBands = useDisasterStore((s) => s.setLinearPrecipBands);
   const setLandslideWarnings = useDisasterStore((s) => s.setLandslideWarnings);
@@ -24,10 +25,11 @@ export function useWeatherPoller() {
   const setLastUpdated       = useDisasterStore((s) => s.setLastUpdated);
 
   useEffect(() => {
-    // ── 雷ナウキャスト（タイルURL更新）──────────────────────────────────
+    // ── 雷ナウキャスト（タイルURL更新 + タイムライン用フレーム）─────────
     async function pollThunder() {
-      const data = await fetchJson<{ validtime: string }>('/api/thunder-nowcast');
+      const data = await fetchJson<{ validtime: string; frames?: { basetime: string; validtime: string }[] }>('/api/thunder-nowcast');
       if (data?.validtime) setThunderTileTime(data.validtime);
+      if (data?.frames) setThunderFrames(data.frames);
     }
 
     // ── 台風 ────────────────────────────────────────────────────────────
@@ -133,9 +135,23 @@ export function useWeatherPoller() {
     function handleRefresh() { pollAll(); }
     window.addEventListener('disaster-refresh', handleRefresh);
 
+    // タブ復帰・PWA再表示時に即時更新（バックグラウンド中の欠落を補完）
+    // visibilitychange の連発対策として最低30秒間隔に制限
+    let lastVisiblePoll = 0;
+    function handleVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastVisiblePoll < 30_000) return;
+      lastVisiblePoll = Date.now();
+      pollAll();
+    }
+    document.addEventListener('visibilitychange', handleVisible);
+    window.addEventListener('pageshow', handleRefresh);
+
     return () => {
       clearInterval(id);
       window.removeEventListener('disaster-refresh', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisible);
+      window.removeEventListener('pageshow', handleRefresh);
     };
-  }, [setThunderTileTime, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents, replaceEventsByType, setLastUpdated]);
+  }, [setThunderTileTime, setThunderFrames, setTyphoons, setLinearPrecipBands, setLandslideWarnings, addEvents, replaceEventsByType, setLastUpdated]);
 }

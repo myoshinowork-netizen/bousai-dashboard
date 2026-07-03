@@ -92,7 +92,21 @@ export function PwaRegister() {
         新バージョンがあります
       </span>
       <button
-        onClick={() => window.location.reload()}
+        onClick={async () => {
+          try {
+            // waiting 状態の SW があれば SKIP_WAITING → controllerchange 後にリロード
+            const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+            if (reg?.waiting) {
+              const reloaded = new Promise<void>((resolve) => {
+                navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+                setTimeout(resolve, 3000); // フォールバック
+              });
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              await reloaded;
+            }
+          } catch { /* ignore */ }
+          window.location.reload();
+        }}
         style={{
           fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--cp-cyan)',
           background: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.4)',

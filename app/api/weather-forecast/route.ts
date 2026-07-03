@@ -18,10 +18,12 @@ type JmaArea = {
   area: { name: string; code: string };
   weatherCodes?: string[];
   weathers?: string[];
+  winds?: string[];
   pops?: string[];
   temps?: string[];
   tempsMax?: string[];
   tempsMin?: string[];
+  reliabilities?: string[];
 };
 
 type JmaTimeSeries = {
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(
       `https://www.jma.go.jp/bosai/forecast/data/forecast/${area}.json`,
-      { next: { revalidate: 3600 } }
+      { next: { revalidate: 300 } } // JMA予報の更新（5・11・17時）を早く反映
     );
     if (!res.ok) throw new Error(`JMA forecast error: ${res.status}`);
     const json: JmaForecast[] = await res.json();
@@ -68,16 +70,23 @@ export async function GET(req: Request) {
     const todayDate = todayIso?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
     const todayCode = shortA?.weatherCodes?.[0] ?? '';
 
-    // ── 今日の降水確率: 6h 区切りの最大値を採用 ──
+    // ── 今日の降水確率: 6h 区切りの最大値 + 時間帯別リスト ──
     let todayPop = 0;
+    const todayPops6h: { label: string; pop: number }[] = [];
     if (shortPop) {
       const aPops = shortPop.areas[0]?.pops ?? [];
-      const vals  = shortPop.timeDefines
-        .map((iso, i) => ({ d: iso.slice(0, 10), v: safeInt(aPops[i]) }))
-        .filter((x) => x.d === todayDate && x.v !== undefined)
-        .map((x) => x.v!);
-      if (vals.length > 0) todayPop = Math.max(...vals);
+      shortPop.timeDefines.forEach((iso, i) => {
+        const v = safeInt(aPops[i]);
+        if (iso.slice(0, 10) !== todayDate || v === undefined) return;
+        const h = parseInt(iso.slice(11, 13) || '0', 10);
+        todayPops6h.push({ label: `${h}-${(h + 6) % 24 || 24}時`, pop: v });
+        todayPop = Math.max(todayPop, v);
+      });
     }
+
+    // ── 今日の風予報（3日予報）──
+    const shortWind = short?.timeSeries?.find((s) => s.areas?.[0]?.winds);
+    const todayWind = shortWind?.areas[0]?.winds?.[0];
 
     // ── 今日・明日の気温: timeDefines の日付で判定 ──
     // JMA 慣例: 00:00〜06:00 = 最低気温、09:00〜 = 最高気温
@@ -110,6 +119,8 @@ export async function GET(req: Request) {
       popMax: todayPop,
       tempMax: todayTempMax,
       tempMin: todayTempMin,
+      wind: todayWind,
+      pops6h: todayPops6h.length > 0 ? todayPops6h : undefined,
     };
 
     // ── 週間予報を取得（明日〜） ──
@@ -144,6 +155,7 @@ export async function GET(req: Request) {
         popMax: isNaN(pop) ? 0 : pop,
         tempMax: tMax,
         tempMin: tMin,
+        reliability: wA.reliabilities?.[i] || undefined,
       };
     });
 
@@ -152,10 +164,17 @@ export async function GET(req: Request) {
       ? weeklyDays
       : [today, ...weeklyDays];
 
-    // 週間予報に含まれている今日の行に気温が欠けている場合は補完
+    // 週間予報に含まれている今日の行に気温・風・時間帯別降水確率を補完
     if (days[0]?.date === todayDate) {
       if (days[0].tempMax === undefined) days[0] = { ...days[0], tempMax: todayTempMax };
       if (days[0].tempMin === undefined) days[0] = { ...days[0], tempMin: todayTempMin };
+      days[0] = {
+        ...days[0],
+        wind: todayWind,
+        pops6h: todayPops6h.length > 0 ? todayPops6h : undefined,
+        // 週間予報側の今日の降水確率は空のことがある → 3日予報の最大値で補完
+        popMax: Math.max(days[0].popMax, todayPop),
+      };
     }
 
     return NextResponse.json({ days, areaName: wA.area?.name ?? shortA?.area?.name ?? '' });

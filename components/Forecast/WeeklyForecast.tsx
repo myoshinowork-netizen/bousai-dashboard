@@ -229,6 +229,23 @@ function DayRow({ day, isToday }: { day: ForecastDay; isToday: boolean }) {
           whiteSpace: 'nowrap',
         }}>
           {day.weather}
+          {day.reliability && (
+            <span
+              title={`予報信頼度 ${day.reliability}（Aが最も確度高）`}
+              style={{
+                marginLeft: 5,
+                fontSize: 7,
+                fontWeight: 700,
+                padding: '0 3px',
+                border: '1px solid',
+                borderColor: day.reliability === 'A' ? '#69f0ae' : day.reliability === 'B' ? '#ffd600' : '#ff6d00',
+                color:       day.reliability === 'A' ? '#69f0ae' : day.reliability === 'B' ? '#ffd600' : '#ff6d00',
+                letterSpacing: 0,
+              }}
+            >
+              信頼度{day.reliability}
+            </span>
+          )}
         </div>
         <PopBar pop={day.popMax} />
       </div>
@@ -268,7 +285,7 @@ export function WeeklyForecast() {
   useEffect(() => {
     async function fetchForecast() {
       try {
-        const res = await fetch(`/api/weather-forecast?area=${forecastArea}`);
+        const res = await fetch(`/api/weather-forecast?area=${forecastArea}`, { cache: 'no-store' });
         if (!res.ok) return;
         const { days, areaName } = await res.json();
         setForecastDays(days ?? []);
@@ -276,11 +293,14 @@ export function WeeklyForecast() {
       } catch { /* ignore */ }
     }
     fetchForecast();
-    const id = setInterval(fetchForecast, 60 * 60 * 1000);
-    return () => clearInterval(id);
+    const id = setInterval(fetchForecast, 30 * 60 * 1000);
+    window.addEventListener('disaster-refresh', fetchForecast);
+    return () => { clearInterval(id); window.removeEventListener('disaster-refresh', fetchForecast); };
   }, [forecastArea, setForecastDays]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // ローカル（日本時間）の今日。toISOString() は UTC のため早朝に日付がずれる
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -367,6 +387,41 @@ export function WeeklyForecast() {
             {forecastDays.slice(0, 7).map((day) => (
               <DayRow key={day.date} day={day} isToday={day.date === today} />
             ))}
+
+            {/* 今日の詳細: 時間帯別降水確率 + 風 */}
+            {forecastDays[0]?.date === today && (forecastDays[0].pops6h || forecastDays[0].wind) && (
+              <div style={{
+                margin: '8px 10px 0',
+                padding: '7px 10px',
+                background: 'rgba(255,214,0,0.04)',
+                border: '1px solid rgba(255,214,0,0.15)',
+                borderLeft: '2px solid rgba(255,214,0,0.5)',
+              }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, letterSpacing: '0.16em', color: 'var(--cp-amber)', marginBottom: 5 }}>
+                  ◈ 今日の詳細
+                </div>
+                {forecastDays[0].pops6h && (
+                  <div style={{ display: 'flex', gap: 6, marginBottom: forecastDays[0].wind ? 5 : 0, flexWrap: 'wrap' }}>
+                    {forecastDays[0].pops6h.map((p) => (
+                      <div key={p.label} style={{ textAlign: 'center', flex: 1, minWidth: 44 }}>
+                        <div style={{ color: 'var(--cp-muted)', fontSize: 8, letterSpacing: 0 }}>{p.label}</div>
+                        <div style={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: 0,
+                          color: p.pop >= 70 ? '#1e88e5' : p.pop >= 40 ? '#42a5f5' : p.pop >= 20 ? '#90caf9' : 'var(--cp-muted)',
+                        }}>
+                          {p.pop}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {forecastDays[0].wind && (
+                  <div style={{ color: 'var(--cp-text)', fontSize: 9, lineHeight: 1.5 }}>
+                    🌬 {forecastDays[0].wind}
+                  </div>
+                )}
+              </div>
+            )}
             {/* 週間天気解説文 */}
             {forecastDays.length > 0 && (
               <div style={{

@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { useDisasterStore } from '@/store/useDisasterStore';
+import { buildSentences } from '@/components/NewsTicker/NewsTicker';
 import type { DisasterEvent } from '@/lib/model';
 
 // ────────────────────────────────────────────────
@@ -168,13 +169,14 @@ function buildCards(
   const lpBands  = linearPrecipBands;
   const lpEvents = events.filter((e) => e.type === 'linear_precip');
   if (lpBands.length > 0 || lpEvents.length > 0) {
-    const count = lpBands.length > 0 ? lpBands.length : lpEvents.length;
-    const areas = lpBands.length > 0
-      ? lpBands.map((b) => b.area).join('・')
-      : [...new Set(lpEvents.flatMap((e) => e.area ?? []))].join('・') || '複数地域';
+    // 「◯件」ではなく発生地域で表現する
+    const lpAreas = lpBands.length > 0
+      ? [...new Set(lpBands.map((b) => b.area))]
+      : [...new Set(lpEvents.flatMap((e) => e.area ?? []))];
+    const areas = lpAreas.join('・') || '複数地域';
     cards.push({
       id: 'linearPrecip', icon: '⛈', title: '線状降水帯', level: 'emergency',
-      statusLines: [`${count}件発生中 ／ ${areas}`, '極めて激しい雨が長時間継続'],
+      statusLines: [`発生中 ／ 対象地域: ${areas}`, '極めて激しい雨が長時間継続'],
       bodyLines: [
         '線状降水帯（帯状の強雨域）が確認されています。',
         '同一地域に1時間 50〜100mm を超える極めて激しい雨が長時間降り続き、甚大な浸水・河川氾濫・土砂災害が発生または切迫しています。',
@@ -516,11 +518,18 @@ export function NewsModal({ open, onClose }: { open: boolean; onClose: () => voi
   const linearPrecipBands = useDisasterStore((s) => s.linearPrecipBands);
   const landslideWarnings = useDisasterStore((s) => s.landslideWarnings);
   const layers            = useDisasterStore((s) => s.layers);
+  const forecastDays      = useDisasterStore((s) => s.forecastDays);
   const [tab, setTab]     = useState<'disaster' | 'news'>('disaster');
 
   const cards = useMemo(
     () => buildCards(events, typhoons, linearPrecipBands, landslideWarnings, layers),
     [events, typhoons, linearPrecipBands, landslideWarnings, layers],
+  );
+
+  // ティッカーと同一ロジックで速報文を生成（表示内容を完全一致させる）
+  const tickerSentences = useMemo(
+    () => buildSentences(events, typhoons, linearPrecipBands, landslideWarnings, layers, forecastDays),
+    [events, typhoons, linearPrecipBands, landslideWarnings, layers, forecastDays],
   );
 
   if (!open) return null;
@@ -582,6 +591,19 @@ export function NewsModal({ open, onClose }: { open: boolean; onClose: () => voi
         <div style={{ overflowY: 'auto', padding: '10px 12px', flex: 1 }}>
           {tab === 'disaster' && (
             <>
+              {/* ティッカーに流れている速報の一覧（内容はティッカーと同一） */}
+              <div style={{ border: '1px solid rgba(0,229,255,0.25)', background: 'rgba(0,229,255,0.04)', marginBottom: 10, padding: '8px 10px' }}>
+                <div style={{ color: 'var(--cp-cyan)', fontSize: 8, letterSpacing: '0.16em', marginBottom: 6 }}>
+                  ▶ 現在の速報（ティッカー表示中）
+                </div>
+                {tickerSentences.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 6, padding: '2px 0' }}>
+                    <span style={{ color: s.color, flexShrink: 0, fontSize: 8, marginTop: 2 }}>◆</span>
+                    <span style={{ color: s.color, fontSize: 10, lineHeight: 1.6 }}>{s.text}</span>
+                  </div>
+                ))}
+              </div>
+
               {cards.map((card) => <CardItem key={card.id} card={card} />)}
               <div style={{ paddingTop: 8, color: 'var(--cp-muted)', fontSize: 7, letterSpacing: '0.05em', textAlign: 'center' }}>
                 出典: 気象庁 / 国土地理院 / 国土交通省 / P2P地震情報 ／ 本情報は参考値です。公式発表を最優先にしてください。
